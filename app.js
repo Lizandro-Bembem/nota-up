@@ -137,15 +137,23 @@ function phRemove(){S.user.photo='';log('Foto de perfil removida');save();closeS
 const vpBox=()=>`<div class="vp"><div id="vpm">${vpInner()}</div><div class="row" style="margin-top:8px"><input id="vt" placeholder="…ou digite o comando" onkeydown="if(event.key=='Enter')vtype()"><button class="btn sm" onclick="stopVoice()">Cancelar</button></div></div>`;
 function vpaint(){const e=$('#vpm');if(e&&vp)e.innerHTML=vpInner()}
 function vtype(){const i=$('#vt'),v=i.value.trim();i.value='';if(v)handle(v,1)}
-function handle(tx,typed){log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);say('j',voice(tx))}
+function handle(tx,typed){log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;try{a=voice(tx)}catch(e){console.error(e);a=P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}say('j',a)}
 function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
 function mic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;vp={msgs:[{r:'j',t:P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`)}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();if(SR)listen(SR)}
-function listen(SR){if(!keep)return;let r;try{r=new SR()}catch(e){return}rec=r;r.lang='pt-BR';r.interimResults=true;r.maxAlternatives=1;
-    r.onstart=()=>{if(vp){vp.st='Ouvindo…';vpaint()}};
-    r.onresult=e=>{let tx='',fin=false;for(let i=e.resultIndex;i<e.results.length;i++){tx+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}if(!vp)return;if(fin){vp.live='';handle(tx.trim())}else{vp.live=tx;vpaint()}};
-    r.onerror=e=>{if(!vp)return;const E=e.error;if(E=='not-allowed'||E=='service-not-allowed'){keep=false;vp.st='Microfone bloqueado. Libere nas configurações do navegador ou digite o comando.'}else if(E=='network'){keep=false;vp.st='Sem internet para reconhecer a voz. Digite o comando.'}else if(E=='audio-capture')vp.st='Não achei o microfone.';else if(E=='no-speech')vp.st='Não ouvi nada. Pode falar.';vpaint()};
-    r.onend=()=>{if(keep)setTimeout(()=>listen(SR),40)};try{r.start()}catch(e){}}
-function stopVoice(){keep=false;try{rec&&rec.abort()}catch(e){}vp=null;render()}
+// reconhecimento de voz: UMA instância reaproveitada (recriar a cada frase travava o microfone)
+let running=false,lastEv=0,lastFin={t:'',at:0},rstTimer=null;
+function recStart(){if(!keep||!rec||running)return;try{rec.start()}catch(e){}}
+function recLater(ms){clearTimeout(rstTimer);rstTimer=setTimeout(recStart,ms)}
+function finalText(tx){tx=(tx||'').trim();if(!tx)return;const n=Date.now();if(tx===lastFin.t&&n-lastFin.at<2000)return;lastFin={t:tx,at:n};handle(tx)}
+function listen(SR){if(!keep)return;
+    if(!rec){let r;try{r=new SR()}catch(e){if(vp){vp.st='Não consegui iniciar o microfone. Digite o comando.';vpaint()}return}rec=r;r.lang='pt-BR';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
+        r.onstart=()=>{running=true;lastEv=Date.now();if(vp){vp.st='Ouvindo…';vpaint()}};
+        r.onresult=e=>{lastEv=Date.now();let tx='',fin=false;for(let i=e.resultIndex;i<e.results.length;i++){tx+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}if(!vp)return;if(fin){vp.live='';finalText(tx)}else{vp.live=tx;vpaint()}};
+        r.onerror=e=>{if(!vp)return;const E=e.error;if(E=='not-allowed'||E=='service-not-allowed'){keep=false;vp.st='Microfone bloqueado. Libere nas configurações do navegador ou digite o comando.'}else if(E=='network'){keep=false;vp.st='Sem internet para reconhecer a voz. Digite o comando.'}else if(E=='audio-capture')vp.st='Não achei o microfone.';else if(E=='no-speech')vp.st='Não ouvi nada. Pode falar.';else return;vpaint()};
+        r.onend=()=>{running=false;if(vp&&vp.live){const tx=vp.live;vp.live='';finalText(tx)}if(keep)recLater(350)}}
+    recStart()}
+function stopVoice(){keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;render()}
+setInterval(()=>{if(!keep||!vp||!rec)return;if(!running)recStart();else if(Date.now()-lastEv>20000){try{rec.abort()}catch(e){}}},2000);
 // ---------- v4: Jarvis conversacional ----------
 const hr=()=>{const h=new Date().getHours();return h<12?'bom dia':h<18?'boa tarde':'boa noite'},P=(a,b)=>S.tone=='formal'?b:a,fn1=()=>S.user.name.trim().split(' ')[0];
 function lev(a,b){const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]==b[j-1]?0:1));p=t}}return d[b.length]}
@@ -184,7 +192,7 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     if(/(mud|alter|troc|defin)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
     if(/(modo|tema)\s*(escuro|noturno)/.test(t)){setTheme('dark');return P('Pronto, modo escuro ligado.','Modo escuro ativado.')}
     if(/(modo|tema)\s*claro/.test(t)){setTheme('light');return P('Pronto, modo claro ligado.','Modo claro ativado.')}
-    let nv=t.match(/(abr|va |vai |ir |mostr|ve )\w*.*?(calendario|historico|configuracoes|inicio|auditoria)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
+    let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
     if(/^(tchau|ate mais|ate logo|encerrar|fechar|pode fechar|era so isso)/.test(t)){setTimeout(stopVoice,1400);return P(`Falou, ${nm}! Até mais.`,'Até logo. Estarei à disposição.')}
     if(/(o que|que)\s*(temos|tenho|tem)\b.*(hoje|agenda|pendente)|minha agenda|pendencia|o que falta/.test(t))return agenda();
     if(!act){
