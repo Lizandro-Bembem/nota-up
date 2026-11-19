@@ -1,8 +1,8 @@
 const $=s=>document.querySelector(s),app=$('#app');
 const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',ativ:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 8h6M8 12h6"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'};
-let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:null,ai:{prov:'claude',key:'',model:''},chat:[]},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
+let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:null,voice:{on:true,kind:'fem'},ai:{prov:'claude',key:'',model:''},chat:[]},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
-let locked=!!S.sec,AI={busy:false,img:null,picking:false};
+let speaking=false,spT=null,spId=0,showPw=false,locked=!!S.sec,AI={busy:false,img:null,picking:false};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f=n=>(Math.round(n*10)/10).toFixed(1).replace('.',','),ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),today=()=>ymd(new Date());
@@ -19,7 +19,7 @@ function need(d){const u=[1,2,3].map(i=>unitAvg(d,i)),got=u.filter(x=>x!==null),
     return req<=0?'Média já garantida ✓':'Precisa de '+f(req/left)+' em cada unidade restante'}
 const col=v=>v===null?'':v>=S.target?'ok':'warn';
 // views
-const go=v=>{view=v;sheet=null;render()};
+const go=v=>{view=v;showPw=false;sheet=null;render()};
 function avatar(){return `<div class="av">${S.user.photo?`<img src="${S.user.photo}" alt="">`:esc(S.user.name[0]||'?').toUpperCase()}</div>`}
 function ob(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Suas Notas, Sua Evolução</h1><p class="sub">Crie seu perfil para começar.</p>
 <label>Seu nome</label><input class="ac" autocapitalize="sentences" id="n" placeholder="Ex.: Lizandro">
@@ -50,7 +50,7 @@ function cfg(){return `<h1>Configurações</h1>
  <div class="card" style="margin-top:12px"><label style="margin:0">Média para aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=+this.value||7;log('Média de aprovação alterada para '+S.target);save();render()">
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
  <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg" data-pos="${S.theme=='dark'?1:0}"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>
- ${aiCard()}${secCard()}<div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${S.log.map(l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>'}</div>`}
+ ${aiCard()}${voiceCard()}${secCard()}<div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${S.log.map(l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>'}</div>`}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
 const closeSheet=()=>{sheet=null;render()};
@@ -140,18 +140,18 @@ function phRemove(){S.user.photo='';log('Foto de perfil removida');save();closeS
 const vpBox=()=>`<div class="vp"><button class="vx" onclick="stopVoice()" aria-label="Fechar">✕</button><div id="vpm">${vpInner()}</div><div class="row" style="margin-top:8px"><input id="vt" placeholder="…ou digite o comando" onkeydown="if(event.key=='Enter')vtype()"><span id="vbtn">${vbtn()}</span></div></div>`;
 const vbtn=()=>`<button class="vb ${keep?'on':''}" onclick="toggleMic()" aria-label="${keep?'Parar de ouvir':'Falar'}">${keep?IC.stop:IC.mic}</button>`;
 function toggleMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!vp)return;
-    if(keep){keep=false;clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp.live='';vp.st='Parei de ouvir. Toque no microfone para falar.';return vpaint()}
+    if(keep){keep=false;stopSpeak();clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp.live='';vp.st='Parei de ouvir. Toque no microfone para falar.';return vpaint()}
     if(!SR){vp.st='Voz indisponível aqui. Digite o comando.';return vpaint()}
     keep=true;vp.st='Iniciando microfone…';vpaint();listen(SR)}
 function vpaint(){const e=$('#vpm');if(e&&vp)e.innerHTML=vpInner();const b=$('#vbtn');if(b&&vp)b.innerHTML=vbtn()}
 function vtype(){const i=$('#vt'),v=i.value.trim();i.value='';if(v)handle(v,1)}
-function handle(tx,typed){log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;try{a=voice(tx)}catch(e){console.error(e);a=P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}say('j',a)}
-function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
-function mic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;vp={msgs:[{r:'j',t:P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`)}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();if(SR)listen(SR)}
+function handle(tx,typed){log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;try{a=voice(tx)}catch(e){console.error(e);a=P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}if(a===CHAT)return aiVoice(tx);say('j',a)}
+function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}speak(t);const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
+function mic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;vp={msgs:[{r:'j',t:P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`)}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();speak(vp.msgs[0].t);if(SR)listen(SR)}
 // reconhecimento de voz: UMA instância reaproveitada (recriar a cada frase travava o microfone)
 let running=false,lastEv=0,lastFin={t:'',at:0},rstTimer=null;
 let guardT=null;
-function recStart(){if(!keep||!rec||running)return;try{rec.start()}catch(e){}if(!guardT)guardT=setTimeout(()=>{guardT=null;if(keep&&!running){keep=false;try{rec.abort()}catch(e){}if(vp){vp.st='Toque no microfone para falar.';vpaint()}}},2500)}
+function recStart(){if(!keep||!rec||running||speaking)return;try{rec.start()}catch(e){}if(!guardT)guardT=setTimeout(()=>{guardT=null;if(keep&&!running){keep=false;try{rec.abort()}catch(e){}if(vp){vp.st='Toque no microfone para falar.';vpaint()}}},2500)}
 function recLater(ms){clearTimeout(rstTimer);rstTimer=setTimeout(recStart,ms)}
 function finalText(tx){tx=(tx||'').trim();if(!tx)return;const n=Date.now();if(tx===lastFin.t&&n-lastFin.at<2000)return;lastFin={t:tx,at:n};handle(tx)}
 function listen(SR){if(!keep)return;
@@ -161,7 +161,7 @@ function listen(SR){if(!keep)return;
         r.onerror=e=>{if(!vp)return;const E=e.error;if(E=='not-allowed'||E=='service-not-allowed'){keep=false;vp.st='Microfone bloqueado. Libere nas configurações do navegador ou digite o comando.'}else if(E=='network'){keep=false;vp.st='Sem internet para reconhecer a voz. Digite o comando.'}else if(E=='audio-capture')vp.st='Não achei o microfone.';else if(E=='no-speech')vp.st='Não ouvi nada. Pode falar.';else return;vpaint()};
         r.onend=()=>{running=false;if(vp&&vp.live){const tx=vp.live;vp.live='';finalText(tx)}if(keep)recLater(350)}}
     recStart()}
-function stopVoice(){keep=false;clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp=null;render()}
+function stopVoice(){keep=false;stopSpeak();clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp=null;render()}
 setInterval(()=>{if(!keep||!vp||!rec)return;if(running&&Date.now()-lastEv>20000){try{rec.abort()}catch(e){}}},2000);
 // ---------- v4: Jarvis conversacional ----------
 const hr=()=>{const h=new Date().getHours();return h<12?'bom dia':h<18?'boa tarde':'boa noite'},P=(a,b)=>S.tone=='formal'?b:a,fn1=()=>S.user.name.trim().split(' ')[0];
@@ -205,7 +205,7 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     if(/(modo|tema)\s*(escuro|noturno)/.test(t)){setTheme('dark');return P('Pronto, modo escuro ligado.','Modo escuro ativado.')}
     if(/(modo|tema)\s*claro/.test(t)){setTheme('light');return P('Pronto, modo claro ligado.','Modo claro ativado.')}
     let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria|atividades)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],atividades:['ativ','as atividades'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
-    if(/^(tchau|ate mais|ate logo|encerrar|fechar|pode fechar|era so isso)/.test(t)){setTimeout(stopVoice,1400);return P(`Falou, ${nm}! Até mais.`,'Até logo. Estarei à disposição.')}
+    if(/^(tchau|ate mais|ate logo|encerrar|fechar|pode fechar|era so isso)/.test(t)){setTimeout(stopVoice,2800);return P(`Falou, ${nm}! Até mais.`,'Até logo. Estarei à disposição.')}
     if(/(o que|que)\s*(temos|tenho|tem)\b.*(hoje|agenda|pendente)|minha agenda|pendencia|o que falta/.test(t))return agenda();
     if(!act){
         if(/(quais|quantas|minhas|liste|listar|mostr\w*)\b.*\b(materias|disciplinas)\b/.test(t))return S.discs.length?P(`Você tem ${S.discs.length}: ${S.discs.map(x=>x.name).join(', ')}.`,`Disciplinas cadastradas (${S.discs.length}): ${S.discs.map(x=>x.name).join(', ')}.`):'Você ainda não tem matérias. Diga “adicionar matéria de …”.';
@@ -214,7 +214,16 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
         if(/\b(melhor|pior|mais alta|mais baixa|maior|menor)\b.*(media|materia|nota|disciplina)/.test(t)){const L=S.discs.map(x=>({x,a:discAvg(x.id)})).filter(o=>o.a!==null).sort((p,q)=>q.a-p.a);if(!L.length)return 'Ainda não há notas lançadas.';const hi=/melhor|mais alta|maior/.test(t),o=hi?L[0]:L[L.length-1];return P(`Sua ${hi?'melhor':'pior'} média é ${o.x.name}, com ${f(o.a)}.`,`${hi?'Maior':'Menor'} média: ${o.x.name}, com ${f(o.a)}.`)}
         if(/\bmedia\b|passar|aprov|reprov|quanto falta|falta (pra|para)/.test(t)){if(d){const a=discAvg(d.id);return a===null?P(`Ainda não tem nota em ${d.name}.`,`Não há notas registradas em ${d.name}.`):`${d.name}: média ${f(a)}. ${need(d.id)}.`}
             const L=S.discs.filter(x=>discAvg(x.id)!==null);if(/falta|passar|aprov|reprov/.test(t))return L.length?L.slice(0,6).map(x=>`${x.name}: ${f(discAvg(x.id))} — ${need(x.id)}`).join('. ')+'.':'Ainda não há notas lançadas.';const o=overall();return o===null?'Ainda não há notas lançadas.':P(`Sua média geral tá em ${f(o)}.`,`Sua média geral é ${f(o)}.`)}}
+    if(!cmd&&S.ai.key)return CHAT;
     if(!cmd){
+        if(/que horas|horas sao|hora (e|eh) agora/.test(t)){const h=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});return P(`Agora são ${h}.`,`São ${h}.`)}
+        if(/que dia (e|eh) hoje|data de hoje|dia da semana/.test(t))return `Hoje é ${new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})}.`;
+        if(/piada|me faz rir|algo engracado/.test(t))return sorteia(JOKES);
+        if(/cansad|desanim|desmotiv|triste|estress|ansios|com sono|sem vontade/.test(t))return P(`Poxa, ${nm}, acontece com todo mundo. Respira fundo, faz uma pausa curtinha e volta com calma. Passo a passo você chega lá!`,'Compreendo. Uma pausa curta pode ajudar a retomar o foco.');
+        if(/motiva|incentiv|me anima|forca/.test(t))return P(`Bora, ${nm}! Cada nota lançada é um passo. Você tá evoluindo, continua assim!`,'Continue com disciplina. Cada passo conta para o resultado final.');
+        if(/dica.*estud|como estudar|estudar melhor/.test(t))return P('Uma dica boa: estuda 25 minutos, descansa 5 e repete. Revisar no mesmo dia também ajuda muito!','Sugiro estudar em blocos de 25 minutos com pausas de 5 e revisar o conteúdo no mesmo dia.');
+        if(/voce (e|eh) (legal|bom|inteligente|demais)|gostei|parabens|mandou bem/.test(t))return P(`Valeu, ${nm}! Você também tá mandando bem.`,'Agradeço.');
+        if(/^(ok|beleza|certo|entendi|legal|show|massa|top|blz|tranquilo|perfeito|fechou)$/.test(t))return P(sorteia(['Fechou!','Beleza!','Tamo junto!']),'Certo.');
         if(/obrigad|valeu|brigad/.test(t))return P(`Por nada, ${nm}! Tamo junto.`,'Disponha. Estou à disposição.');
         if(/tudo bem|como (voce|vc) (esta|ta|vai)|como vai/.test(t))return P('Tudo ótimo por aqui! E você, como tá? O que vamos resolver hoje?','Estou bem, obrigado por perguntar. Em que posso ajudá-lo?');
         if(/quem (e|eh) voce|seu nome|o que voce faz|ajuda|o que (voce )?sabe/.test(t))return P(`Sou o ${S.user.nick}, seu parceiro do NotaUp! Lanço notas, crio matérias e tarefas, calculo médias, digo quanto falta pra passar e te aviso do que tá pendente. É só pedir.`,`Sou ${S.user.nick}, assistente do NotaUp. Registro notas, cadastro disciplinas e tarefas, calculo médias, informo quanto falta para aprovação e as pendências.`);
@@ -232,7 +241,8 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     if((ty||/nota/.test(t))&&/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei/.test(t)){if(!D)return noDisc;const T=cap(ty||'atividade'),
         um=t.match(/(\d)\s*[aºªo]?\s*unidade/)||t.match(/unidade\s*(\d)/),w=t.match(/(primeira|segunda|terceira)\s*unidade/),u=um?+um[1]:w?{primeira:1,segunda:2,terceira:3}[w[1]]:1,max=vm?+vm[1]:null;
         if(!sm){if(vp)vp.ask={kind:'score',d:D.id,T,max,u};const of=D.id=='all'?' (todas as matérias)':' de '+D.name;return P(`Beleza, ${T.toLowerCase()}${of}. Quanto você tirou?`,`${T}${of}. Qual foi a nota obtida?`)}return finishGrade(D,T,max,+sm[1],u)}
-    return P(`Não entendi bem, ${nm}. Pode repetir? Ex.: “tirei 8 na prova de Português”, “quanto falta pra passar em Inglês” ou “o que temos para hoje”.`,'Não compreendi a solicitação. Poderia reformular? Exemplo: “quanto falta para passar em Inglês”.')}
+    if(S.ai.key)return CHAT;
+    return P(sorteia([`Hmm, isso eu não sei responder sozinho, ${nm}. Se você vincular uma conta de IA em Configurações, eu converso sobre qualquer assunto! Por enquanto lanço notas, crio matérias e tarefas e calculo médias.`,`Essa eu ainda não peguei, ${nm}. Tenta algo como “tirei 8 na prova de Português” ou “quanto falta pra passar em Inglês”. Com uma conta de IA vinculada eu respondo qualquer coisa.`]),sorteia(['Não tenho como responder isso sem uma IA vinculada. Em Configurações você pode vincular uma conta. Posso registrar notas, tarefas e calcular médias.','Não compreendi a solicitação. Exemplo: “quanto falta para passar em Inglês”. Para conversas livres, vincule uma conta de IA em Configurações.']))}
 document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('ac'))return;const v=t.value;if(v&&v[0]!==v[0].toUpperCase()){const s=t.selectionStart;t.value=v[0].toUpperCase()+v.slice(1);try{t.setSelectionRange(s,s)}catch(_){}}});
 ['gesturestart','gesturechange','gestureend'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault()));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)remind()});
@@ -244,7 +254,7 @@ function setupLock(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG
 <label>Senha (mínimo 4 caracteres)</label><input id="s1" type="password" autocomplete="new-password"><label>Repita a senha</label><input id="s2" type="password" autocomplete="new-password" onkeydown="if(event.key=='Enter')saveLock()">
 <button class="btn" style="margin-top:18px" onclick="saveLock()">Salvar senha</button></div></main>`}
 async function saveLock(){const a=$('#s1').value,b=$('#s2').value;if(a.length<4)return toast('A senha precisa ter pelo menos 4 caracteres.');if(a!==b)return toast('As senhas não são iguais.');
-    const salt=b64(rnd(16));S.sec={salt,hash:await hashPw(a,salt),cred:''};log('Senha de acesso criada');save();locked=false;render();bioOffer()}
+    const salt=b64(rnd(16));S.sec={salt,hash:await hashPw(a,salt),cred:'',pw:a};log('Senha de acesso criada');save();locked=false;render();bioOffer()}
 const afterLock=()=>{if(!S.asked)notifPrompt()};
 async function bioOffer(){let ok=false;try{ok=!!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch(e){}
     if(!ok)return afterLock();
@@ -255,20 +265,25 @@ async function bioEnable(first){let ok=false;
     closeSheet();if(first)afterLock();toast(ok?'Face ID ativado!':'Não consegui ativar o Face ID. Ele precisa de https e de biometria configurada no aparelho.')}
 function bioToggle(){if(S.sec.cred){S.sec.cred='';log('Face ID/biometria desativado');save();render()}else bioEnable(false)}
 // -- tela de entrada
-function lockScr(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Olá, ${esc(fn1())}!</h1><p class="sub">Digite sua senha para entrar.</p>
-<label>Senha</label><input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')unlock()"><button class="btn" style="margin-top:14px" onclick="unlock()">Entrar</button>
-${S.sec.cred?`<button class="btn alt" style="margin-top:8px" onclick="bioUnlock()">Entrar com Face ID</button>`:''}<button class="lnk" style="margin-top:10px" onclick="forgot()">Esqueci minha senha</button></div></main>${sheet||''}`}
-async function unlock(){const e=$('#lp'),v=e?e.value:'';if(!v)return;if(await hashPw(v,S.sec.salt)===S.sec.hash){locked=false;render();remind()}else{toast('Senha incorreta.');e.value=''}}
-async function bioUnlock(){try{await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb(S.sec.cred),transports:['internal']}],userVerification:'required',timeout:60000}});locked=false;render();remind()}catch(e){toast('O Face ID não funcionou. Use a senha.')}}
+let bio={busy:0,tried:0,pw:0,msg:''};const bioReset=()=>{bio={busy:0,tried:0,pw:0,msg:''}};
+function lockScr(){const c=!!S.sec.cred;app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Olá, ${esc(fn1())}!</h1><p class="sub">${esc(bio.msg||(c?'Use o Face ID para entrar.':'Digite sua senha para entrar.'))}</p>
+${c?`<button class="btn" style="margin-top:18px" onclick="bioUnlock()">${bio.tried?'Tentar novamente com o Face ID':'Entrar com o Face ID'}</button>`:''}
+${!c||bio.pw?`<label>Senha</label><input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')unlock()"><button class="btn ${c?'alt':''}" style="margin-top:12px" onclick="unlock()">Entrar com a senha</button>`:`<button class="btn alt" style="margin-top:8px" onclick="bio.pw=1;lockScr()">Digitar minha senha</button>`}
+<button class="lnk" style="margin-top:10px" onclick="forgot()">Esqueci minha senha</button></div></main>${sheet||''}`;
+    if(c&&!bio.tried&&!bio.busy)setTimeout(bioUnlock,200)}
+async function unlock(){const e=$('#lp'),v=e?e.value:'';if(!v)return;if(await hashPw(v,S.sec.salt)===S.sec.hash){bioReset();locked=false;render();remind()}else{toast('Senha incorreta.');e.value=''}}
+async function bioUnlock(){if(bio.busy||!S.sec||!S.sec.cred||!locked)return;bio.busy=1;bio.tried=1;
+    try{await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb(S.sec.cred),transports:['internal']}],userVerification:'required',timeout:60000}});bioReset();locked=false;render();remind()}
+    catch(e){bio.busy=0;bio.msg='Não reconheci você. Tente novamente com o Face ID ou digite sua senha.';if(S.sec&&locked)lockScr()}}
 function forgot(){ask('Esqueci a senha: isso apaga TODOS os dados do app neste aparelho. Continuar?',()=>{try{localStorage.removeItem('notaup')}catch(e){}location.reload()},'Apagar tudo')}
 let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now();return}
     if(AI.picking){AI.picking=false;hiddenAt=0;return}
-    if(S.sec&&!locked&&hiddenAt&&Date.now()-hiddenAt>60000){locked=true;keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;sheet=null;render()}hiddenAt=0});
+    if(S.sec&&!locked&&hiddenAt&&Date.now()-hiddenAt>60000){locked=true;keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;sheet=null;stopSpeak();bioReset();render()}hiddenAt=0});
 // -- cartões em Configurações
-const secCard=()=>{const on=!!(S.sec&&S.sec.cred);return `<div class="card" style="margin-top:12px"><h2>Segurança</h2><p class="sub">O app pede senha ao entrar e quando você volta depois de mais de 1 minuto fora.</p><div class="row sp" style="margin-top:12px"><span style="font-weight:600">Face ID / biometria</span><button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Face ID" onclick="bioToggle()"></button></div><button class="btn sm alt" style="margin-top:12px" onclick="sheetPw()">Alterar senha</button></div>`};
+const secCard=()=>{const on=!!(S.sec&&S.sec.cred);return `<div class="card" style="margin-top:12px"><h2>Segurança</h2><p class="sub">Com o Face ID ativado, o app abre direto nele. Se não reconhecer, você tenta de novo ou digita a senha. O app também trava depois de 1 minuto fora.</p><div class="row sp" style="margin-top:12px"><span style="font-weight:600">Face ID / biometria</span><button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Face ID" onclick="bioToggle()"></button></div>${S.sec.pw?`<div class="row sp" style="margin-top:12px"><span style="font-weight:600">Minha senha</span><div class="row"><b>${showPw?esc(S.sec.pw):'••••••'}</b><button class="btn sm alt" onclick="showPw=!showPw;render()">${showPw?'Ocultar':'Ver'}</button></div></div>`:`<p class="sub" style="margin-top:12px">Para poder ver sua senha aqui, toque em “Alterar senha” e defina-a de novo.</p>`}<button class="btn sm alt" style="margin-top:12px" onclick="sheetPw()">Alterar senha</button></div>`};
 function sheetPw(){open(`<h2>Alterar senha</h2><label>Senha atual</label><input id="p0" type="password"><label>Nova senha</label><input id="p1" type="password"><label>Repita a nova senha</label><input id="p2" type="password"><div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Cancelar</button><button class="btn" style="flex:1" onclick="changePw()">Salvar</button></div>`)}
 async function changePw(){const a=$('#p0').value,n=$('#p1').value,r=$('#p2').value;if(await hashPw(a,S.sec.salt)!==S.sec.hash)return toast('Senha atual incorreta.');if(n.length<4)return toast('A nova senha precisa ter pelo menos 4 caracteres.');if(n!==r)return toast('As senhas não são iguais.');
-    const salt=b64(rnd(16));S.sec.salt=salt;S.sec.hash=await hashPw(n,salt);log('Senha alterada');save();closeSheet();toast('Senha alterada!')}
+    const salt=b64(rnd(16));S.sec.salt=salt;S.sec.hash=await hashPw(n,salt);S.sec.pw=n;log('Senha alterada');save();closeSheet();toast('Senha alterada!')}
 const defModel=p=>p=='openai'?'gpt-4o':'claude-sonnet-5-5';
 const aiCard=()=>{const a=S.ai;return `<div class="card" style="margin-top:12px"><h2>Conta de IA</h2>${a.key?`<p class="sub">Vinculado a <b>${a.prov=='openai'?'ChatGPT (OpenAI)':'Claude (Anthropic)'}</b> · modelo ${esc(a.model||defModel(a.prov))}</p><div class="row" style="margin-top:12px"><button class="btn sm alt" onclick="sheetLink()">Trocar</button><button class="btn sm alt" onclick="ask('Desvincular a conta de IA?',unlink,'Desvincular')">Desvincular</button></div>`:`<p class="sub">Vincule o Claude ou o ChatGPT para resolver atividades por foto ou texto.</p><button class="btn" style="margin-top:12px" onclick="sheetLink()">Vincular conta</button>`}</div>`};
 function sheetLink(){const a=S.ai;open(`<h2>Vincular conta</h2><p class="sub" style="margin-top:6px">O vínculo é feito com a chave de API da sua conta. Ela fica guardada só neste aparelho.</p>
@@ -295,15 +310,38 @@ async function aiSend(){if(AI.busy)return;const ta=$('#ait'),t=ta.value.trim(),i
     S.chat.push({r:'u',t:t||'(resolva a atividade da foto)',img:!!img});ta.value='';ta.style.height='auto';AI.img=null;AI.busy=true;log('Atividade enviada ao assistente de IA'+(img?' (com foto)':''));save();aiPaint(true);
     try{S.chat.push({r:'j',t:await aiCall(hist,t||'Resolva a atividade da foto.',img)})}catch(e){S.chat.push({r:'j',t:'⚠️ '+e.message,err:true})}
     AI.busy=false;S.chat=S.chat.slice(-40);save();if(view=='ativ')aiPaint(true)}
-async function aiCall(hist,text,img){const a=S.ai,md=a.model||defModel(a.prov);let r;
+async function aiCall(hist,text,img,sys=SYS){const a=S.ai,md=a.model||defModel(a.prov);let r;
     const H=hist.map(x=>({role:x.r=='u'?'user':'assistant',content:x.t}));while(H.length&&H[0].role!='user')H.shift();
     try{if(a.prov=='openai'){const cur=img?[{type:'text',text},{type:'image_url',image_url:{url:img}}]:text;
-        r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+a.key},body:JSON.stringify({model:md,messages:[{role:'system',content:SYS},...H,{role:'user',content:cur}]})})}
+        r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+a.key},body:JSON.stringify({model:md,messages:[{role:'system',content:sys},...H,{role:'user',content:cur}]})})}
     else{const cur=img?[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img.split(',')[1]}},{type:'text',text}]:text;
-        r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':a.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:md,max_tokens:2048,system:SYS,messages:[...H,{role:'user',content:cur}]})})}
+        r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':a.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:md,max_tokens:2048,system:sys,messages:[...H,{role:'user',content:cur}]})})}
     }catch(e){throw new Error('Sem conexão com a internet. Tente de novo.')}
     const j=await r.json().catch(()=>({}));
     if(!r.ok){const m=j.error&&(j.error.message||'');if(r.status==401)throw new Error('Chave de API inválida. Vincule a conta de novo em Configurações.');if(r.status==429)throw new Error('Limite de uso ou saldo da conta esgotado.');throw new Error('Erro '+r.status+(typeof m=='string'&&m?': '+m:''))}
     return a.prov=='openai'?j.choices[0].message.content:j.content.filter(c=>c.type=='text').map(c=>c.text).join('\n')}
+// -- assistente: voz falada e conversa com IA
+const CHAT=Symbol('chat'),sorteia=a=>a[Math.floor(Math.random()*a.length)];
+const JOKES=['Por que o livro de matemática vivia triste? Porque tinha muitos problemas!','O que o zero disse pro oito? Que cinto bonito!','Por que o aluno levou uma escada pra escola? Porque queria passar de ano!'];
+try{speechSynthesis.getVoices();speechSynthesis.onvoiceschanged=()=>{}}catch(e){}
+function pickVoice(k){let V=[];try{V=speechSynthesis.getVoices().filter(v=>/^pt/i.test(v.lang))}catch(e){}if(!V.length)return null;
+    const F=/maria|luciana|fernanda|francisca|vit[oó]ria|raquel|joana|helena|female|feminina|google/i,M=/daniel|felipe|ant[oô]nio|ricardo|jorge|thiago|\bmale\b|masculin/i,br=V.filter(v=>/pt[-_]BR/i.test(v.lang)),L=br.length?br:V;
+    return k=='masc'?(L.find(v=>M.test(v.name))||L[0]):k=='fem'?(L.find(v=>F.test(v.name)&&!M.test(v.name))||L[0]):L[0]}
+function stopSpeak(){spId++;speaking=false;clearTimeout(spT);try{speechSynthesis.cancel()}catch(e){}}
+function spEnd(){clearTimeout(spT);if(!speaking)return;speaking=false;if(vp&&keep){vp.st='Ouvindo…';vpaint()}if(keep&&vp)recLater(500)}
+function speak(t,force){try{if(!('speechSynthesis' in window)||!(S.voice.on||force))return;
+    const x=String(t).replace(/[*_#`~]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').replace(/\s+/g,' ').trim();if(!x)return;
+    const id=++spId,k=S.voice.kind,v=pickVoice(k),u=new SpeechSynthesisUtterance(x);speechSynthesis.cancel();u.lang='pt-BR';if(v)u.voice=v;
+    u.pitch=k=='robo'?.2:k=='masc'?(v&&/daniel|felipe|ant[oô]nio|ricardo|jorge|thiago|male|masculin/i.test(v.name)?.95:.7):1.1;u.rate=k=='robo'?.85:k=='masc'?.95:1.02;
+    speaking=true;try{rec&&running&&rec.abort()}catch(e){}if(vp){vp.st='Falando…';vpaint()}
+    clearTimeout(spT);spT=setTimeout(()=>{if(id==spId)spEnd()},2500+x.length*110);u.onend=u.onerror=()=>{if(id==spId)spEnd()};speechSynthesis.speak(u)}catch(e){speaking=false}}
+function setVoice(k){S.voice.kind=k;log('Voz do assistente: '+{fem:'feminina',masc:'masculina',robo:'robótica'}[k]);save();render();speak(`Oi, eu sou o ${S.user.nick}. Essa é a minha voz.`,true)}
+const voiceCard=()=>{const v=S.voice;return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2><div class="row sp" style="margin-top:12px"><span style="font-weight:600">Responder em voz</span><button class="sw ${v.on?'on':''}" role="switch" aria-checked="${v.on}" aria-label="Responder em voz" onclick="S.voice.on=!S.voice.on;save();if(!S.voice.on)stopSpeak();render()"></button></div>
+<div class="tab" style="margin:12px 0 6px">${[['fem','Feminina'],['masc','Masculina'],['robo','Robótica']].map(([k,l])=>`<button class="${v.kind==k?'on':''}" onclick="setVoice('${k}')">${l}</button>`).join('')}</div><p class="sub">Toque para escolher e ouvir uma amostra. As vozes disponíveis dependem do seu aparelho.</p></div>`};
+function jSys(){const ds=S.discs.map(d=>{const a=discAvg(d.id);return d.name+(a===null?'':' (média '+f(a)+')')}).join(', ')||'nenhuma',pend=S.tasks.filter(t=>!t.graded).slice(0,8).map(t=>`${t.type} de ${dn(t.d)} em ${dfmt(t.date)}`).join('; ')||'nenhuma';
+    return `Você é ${S.user.nick}, o assistente por voz do app NotaUp, que ajuda ${S.user.name} com notas e estudos. Fale em português do Brasil, ${S.tone=='formal'?'de forma formal e objetiva':'como um amigo, de forma descontraída'}. Suas respostas serão LIDAS EM VOZ ALTA: use de 1 a 3 frases curtas, sem markdown, sem listas e sem emojis. Você pode conversar sobre qualquer assunto e tirar dúvidas de estudo. Dados do aluno: média para aprovação ${f(S.target)}; matérias: ${ds}; pendências: ${pend}. Hoje é ${new Date().toLocaleDateString('pt-BR',{dateStyle:'full'})}. Você consegue criar matérias e tarefas e lançar notas quando o aluno diz frases como "tirei 8 na prova de Português" ou "adicionar matéria de Física"; se ele pedir isso de forma confusa, oriente nesse formato.`}
+async function aiVoice(tx){if(!vp)return;vp.st='Pensando…';vpaint();const hist=vp.msgs.slice(0,-1).filter(m=>m.t).slice(-8).map(m=>({r:m.r,t:m.t}));let a;
+    try{a=await aiCall(hist,tx,null,jSys())}catch(e){a=e.message}
+    if(vp){vp.st=keep?'Ouvindo…':'Parei de ouvir. Toque no microfone para falar.';say('j',a.replace(/\*\*/g,''))}}
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();remind();setInterval(remind,60000);
