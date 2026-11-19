@@ -1,7 +1,8 @@
 const $=s=>document.querySelector(s),app=$('#app');
-const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'};
-let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo'},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
+const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',ativ:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M8 8h6M8 12h6"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'};
+let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:null,ai:{prov:'claude',key:'',model:''},chat:[]},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
+let locked=!!S.sec,AI={busy:false,img:null,picking:false};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const f=n=>(Math.round(n*10)/10).toFixed(1).replace('.',','),ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),today=()=>ymd(new Date());
@@ -26,7 +27,7 @@ function ob(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}Nota
 <label>Foto (opcional)</label><input id="p" type="file" accept="image/*">
 <button class="btn" style="margin-top:18px" onclick="reg()">Começar</button></div></main>`}
 function reg(){const name=cap($('#n').value.trim()),nick=cap($('#k').value.trim());if(!name||!nick)return toast('Preencha seu nome e o apelido do app.');
-    const fin=photo=>{S.user={name,nick,photo};log('Perfil criado: '+name+' (apelido do app: '+nick+')');save();render();notifPrompt()};
+    const fin=photo=>{S.user={name,nick,photo};log('Perfil criado: '+name+' (apelido do app: '+nick+')');save();render()};
     const fl=$('#p').files[0];if(!fl)return fin('');const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=160;const x=c.getContext('2d'),s=Math.min(im.width,im.height);x.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);fin(c.toDataURL('image/jpeg',.8))};im.src=r.result};r.readAsDataURL(fl)}
 function home(){const o=overall(),due=S.tasks.filter(t=>!t.graded&&daysTo(t.date)<=3);
     return `<div class="row sp"><div class="logo">${LG()}NotaUp</div><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button></div>
@@ -48,8 +49,8 @@ function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
  <div class="card" style="margin-top:12px"><label style="margin:0">Média para aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=+this.value||7;log('Média de aprovação alterada para '+S.target);save();render()">
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
- <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg"><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>
- <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${S.log.map(l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>'}</div>`}
+ <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg" data-pos="${S.theme=='dark'?1:0}"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>
+ ${aiCard()}${secCard()}<div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${S.log.map(l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>'}</div>`}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
 const closeSheet=()=>{sheet=null;render()};
@@ -70,8 +71,9 @@ function num(s){const m=s.match(/\d+(?:[.,]\d+)?/g);return m?m.map(x=>parseFloat
 const TYPES=['Atividade','Projeto','Prova','Teste','Trabalho'],cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function render(){applyTheme();
     if(!S.user){return ob()}
-    const v={home,hist,cal,cfg}[view]();
-    app.innerHTML=`<main>${v}</main>${vp?vpBox():`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav>${[['home','Início'],['hist','Histórico'],['cal','Calendário'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheet||''}`;
+    if(S.sec&&locked)return lockScr();if(!S.sec)return setupLock();
+    const v={home,hist,ativ,cal,cfg}[view]();
+    app.innerHTML=`<main>${v}</main>${vp?vpBox():view=='ativ'?'':`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav>${[['home','Início'],['hist','Histórico'],['ativ','Atividades'],['cal','Calendário'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheet||''}`;if(view=='ativ')aiPaint(true);
 }
 function ask(msg,fn,label){cb=fn;open(`<h2>${esc(msg)}</h2><div class="row" style="margin-top:18px"><button class="btn alt" onclick="closeSheet()">Cancelar</button><button class="btn" onclick="const g=cb;closeSheet();g&&g()">${label||'Confirmar'}</button></div>`)}
 // calendário / tarefas
@@ -94,13 +96,13 @@ function delTask(id){const t=S.tasks.find(x=>x.id==id);S.tasks=S.tasks.filter(x=
 // notas
 function sheetGrade(d,tid){if(!S.discs.length){toast('Crie uma disciplina primeiro.');return sheetDisc()}
     const k=S.tasks.find(x=>x.id==tid)||{};
-    open(`<h2>Adicionar nota</h2><label>Disciplina</label><select id="gd">${dopts(d)}</select><label>Unidade</label><select id="gu"><option>1</option><option>2</option><option>3</option></select><label>Tipo</label><select id="gt">${TYPES.map(x=>`<option ${x==k.type?'selected':''}>${x}</option>`).join('')}</select><label>Descrição</label><input class="ac" autocapitalize="sentences" id="gn" value="${esc(k.title||'')}" placeholder="Ex.: Prova 1"><div class="row"><div><label>Valia</label><input id="gm" type="number" step="0.1" inputmode="decimal" value="${k.pts||10}"></div><div><label>Tirei</label><input id="gs" type="number" step="0.1" inputmode="decimal"></div></div><div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Sair</button><button class="btn" style="flex:1" onclick="addGrade($('#gd').value,+$('#gu').value,$('#gt').value,$('#gn').value,+$('#gm').value,parseFloat($('#gs').value),'${tid||''}')">Salvar nota</button></div>`)}
+    open(`<h2>Adicionar nota</h2><label>Disciplina</label><select id="gd">${dopts(d)}<option value="all" ${d=='all'?'selected':''}>Todas as matérias (projeto)</option></select><label>Unidade</label><select id="gu"><option>1</option><option>2</option><option>3</option></select><label>Tipo</label><select id="gt">${TYPES.map(x=>`<option ${x==k.type?'selected':''}>${x}</option>`).join('')}</select><label>Descrição</label><input class="ac" autocapitalize="sentences" id="gn" value="${esc(k.title||'')}" placeholder="Ex.: Prova 1"><div class="row"><div><label>Valia</label><input id="gm" type="number" step="0.1" inputmode="decimal" value="${k.pts||10}"></div><div><label>Tirei</label><input id="gs" type="number" step="0.1" inputmode="decimal"></div></div><div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Sair</button><button class="btn" style="flex:1" onclick="addGrade($('#gd').value,+$('#gu').value,$('#gt').value,$('#gn').value,+$('#gm').value,parseFloat($('#gs').value),'${tid||''}')">Salvar nota</button></div>`)}
 function addGrade(d,u,type,name,max,s,tid){if(!d||isNaN(s)||!max)return toast('Informe a nota e o valor.');if(s>max)return toast('A nota não pode passar do valor.');
-    S.grades.push({id:uid(),d,u,type,name:name?cap(name):type+' de '+dn(d),max,s,date:today()});const t=S.tasks.find(x=>x.id==tid);if(t)t.graded=true;
+    (d=='all'?S.discs.map(x=>x.id):[d]).forEach(id=>S.grades.push({id:uid(),d:id,u,type,name:name?cap(name):d=='all'?type+' da unidade':type+' de '+dn(d),max,s,date:today()}));const t=S.tasks.find(x=>x.id==tid);if(t)t.graded=true;
     log(`Nota lançada: ${type} ${name||''} de ${dn(d)} (${u}ª unidade) – ${f(s)}/${f(max)}`);save();closeSheet();toast('Nota salva!')}
 // notificações
 function ping(m){toast('⏰ '+m);try{if(S.notif&&Notification.permission=='granted')new Notification('NotaUp',{body:m})}catch(e){}}
-function remind(){if(!S.user)return;const h=new Date().getHours();S.tasks.forEach(t=>{if(t.graded)return;const n=daysTo(t.date),a=t.id+'a',b=t.id+'b';
+function remind(){if(!S.user||(S.sec&&locked))return;const h=new Date().getHours();S.tasks.forEach(t=>{if(t.graded)return;const n=daysTo(t.date),a=t.id+'a',b=t.id+'b';
     if(n>=0&&n<=3&&!S.notified[a]){S.notified[a]=1;ping(`${n==0?'Hoje':'Dia '+dfmt(t.date)}: ${t.type.toLowerCase()} de ${dn(t.d)}, vale ${f(t.pts)} pontos.`)}
     if((n<0||(n==0&&h>=18))&&!S.notified[b]){S.notified[b]=1;ping(`Quanto você tirou em “${t.title}” (${dn(t.d)}, vale ${f(t.pts)})? Lance sua nota.`)}});save()}
 function notifPrompt(){open(`<h2>NotaUp deseja enviar notificações</h2><p class="sub" style="margin-top:8px">Avisos de provas, trabalhos e lembretes para lançar suas notas.</p><div class="row" style="margin-top:18px"><button class="btn alt" onclick="S.asked=1;save();closeSheet()">Cancelar</button><button class="btn" onclick="setNotif(true)">Permitir</button></div>`)}
@@ -113,7 +115,8 @@ function setNotif(on){S.asked=1;if(!on){S.notif=false;log('Notificações desati
 // ---------- v3: tema, logo, foto por gestos, voz fluida ----------
 const LG=()=>`<img src="${S.theme=='dark'?'logo-dark.png':'logo.png'}" alt="">`;
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme=='dark'?'dark':'light')}
-function setTheme(t){S.theme=t;log('Tema alterado para '+(t=='dark'?'escuro':'claro'));save();render()}
+function setTheme(t){const was=S.theme;S.theme=t;log('Tema alterado para '+(t=='dark'?'escuro':'claro'));save();applyTheme();const sg=document.querySelector('.seg'),p=t=='dark'?1:0;
+    if(sg&&!sheet&&was!=t){sg.dataset.pos=p;sg.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i==p));setTimeout(()=>{if(S.theme==t)render()},380)}else render()}
 function tpChg(){const t=$('#tp').value,d=$('#td');if(t=='Projeto'){d.innerHTML='<option value="all">Válido para todas as matérias</option>';d.disabled=true}else{d.innerHTML=dopts();d.disabled=false}}
 // foto de perfil (arrastar e pinçar)
 function sheetPhoto(){ph={img:null,z:1,ox:0,oy:0};
@@ -179,9 +182,12 @@ function parseDate(t){const n=new Date();n.setHours(12,0,0,0);let m;
     if(m=t.match(/dia\s*(\d{1,2})(?:\s*(?:de|\/)\s*([a-z]+|\d{1,2}))?/)){const d=+m[1];let mo=n.getMonth();if(m[2]){const k=isNaN(m[2])?MES[m[2]]:+m[2]-1;if(k!==undefined)mo=k}const dt=new Date(n.getFullYear(),mo,d,12);if(!m[2]&&d<n.getDate())dt.setMonth(dt.getMonth()+1);else if(m[2]&&dt<n)dt.setFullYear(dt.getFullYear()+1);return ymd(dt)}
     for(const k in SEM)if(new RegExp('\\b'+k+'\\b').test(t)){const dt=new Date(n);dt.setDate(dt.getDate()+((SEM[k]-n.getDay()+7)%7||7));return ymd(dt)}
     return null}
-function mkTask(did,T,iso,pts){const d=S.discs.find(x=>x.id==did);S.tasks.push({id:uid(),d:did,type:T,title:T+' de '+d.name,date:iso,pts,graded:false});log(`Tarefa criada por voz: ${T} de ${d.name} para ${dfmt(iso)} (${f(pts)} pts)`);save();render();remind();
-    return P(`Combinado! Agendei ${T.toLowerCase()} de ${d.name} pro dia ${dfmt(iso)}, valendo ${f(pts)}.`,`Agendei ${T.toLowerCase()} de ${d.name} para o dia ${dfmt(iso)}, valendo ${f(pts)} pontos.`)}
-function finishGrade(d,T,max,s,u){const tk=S.tasks.find(x=>x.d==d.id&&!x.graded&&norm(x.type)==norm(T));max=max||(tk?tk.pts:10);if(s>max)return P(`Ops, ${f(s)} passa do valor ${f(max)}. Quanto foi mesmo?`,`A nota ${f(s)} excede o valor ${f(max)}. Poderia confirmar?`);
+function mkTask(did,T,iso,pts){const all=did=='all',d=all?{name:'todas as matérias'}:S.discs.find(x=>x.id==did),to=all?' para todas as matérias':' de '+d.name;
+    S.tasks.push({id:uid(),d:did,type:T,title:all?'Todas as matérias':T+' de '+d.name,date:iso,pts,graded:false});log(`Tarefa criada por voz: ${T}${all?' (todas as matérias)':' de '+d.name} para ${dfmt(iso)} (${f(pts)} pts)`);save();render();remind();
+    return P(`Combinado! Agendei ${T.toLowerCase()}${to} pro dia ${dfmt(iso)}, valendo ${f(pts)}.`,`Agendei ${T.toLowerCase()}${to} para o dia ${dfmt(iso)}, valendo ${f(pts)} pontos.`)}
+function finishGrade(d,T,max,s,u){const all=d.id=='all',tk=S.tasks.find(x=>x.d==d.id&&!x.graded&&norm(x.type)==norm(T));max=max||(tk?tk.pts:10);if(s>max)return P(`Ops, ${f(s)} passa do valor ${f(max)}. Quanto foi mesmo?`,`A nota ${f(s)} excede o valor ${f(max)}. Poderia confirmar?`);
+    if(all){if(!S.discs.length)return P('Você ainda não tem matérias cadastradas.','Não há disciplinas cadastradas.');if(tk)tk.graded=true;const nm=tk&&tk.title!='Todas as matérias'?tk.title:T+' da unidade';S.discs.forEach(x=>S.grades.push({id:uid(),d:x.id,u,type:T,name:nm,max,s,date:today()}));log(`Nota lançada por voz: ${T} (todas as matérias, ${u}ª unidade) – ${f(s)}/${f(max)}`);save();render();
+        return P(`Feito! ${T} da ${u}ª unidade: ${f(s)}/${f(max)} em todas as matérias.`,`Registrado: ${T.toLowerCase()} da ${u}ª unidade, ${f(s)} de ${f(max)}, em todas as matérias.`)}
     if(tk)tk.graded=true;S.grades.push({id:uid(),d:d.id,u,type:T,name:tk?tk.title:T+' de '+d.name,max,s,date:today()});log(`Nota lançada por voz: ${T} de ${d.name} (${u}ª unidade) – ${f(s)}/${f(max)}`);save();render();const a=discAvg(d.id);
     return P(`Feito! ${T} de ${d.name}: ${f(s)}/${f(max)} na ${u}ª unidade. Sua média em ${d.name} tá ${f(a)}.`,`Registrado: ${T.toLowerCase()} de ${d.name}, ${f(s)} de ${f(max)} (${u}ª unidade). Média atual: ${f(a)}.`)}
 const CH=['O que temos para hoje?','Minha média geral','Quanto falta para passar?','Minhas matérias'];
@@ -190,7 +196,7 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     const A=vp&&vp.ask;if(A){vp.ask=null;const x=num(t);
         if(/^(nao|deixa|cancela|esquece|para)\b/.test(t))return P('Beleza, deixei pra lá.','Certo, cancelado.');
         if(A.kind=='yes'&&/^(sim|pode|claro|confirm\w*|isso|ok|quero|exato)\b/.test(t))return A.fn();
-        if(A.kind=='score'&&x.length&&t.split(' ').length<=5&&!/materia|disciplina|prova|trabalho|atividade|projeto|teste/.test(t))return finishGrade(S.discs.find(d=>d.id==A.d),A.T,A.max,x[0],A.u);
+        if(A.kind=='score'&&x.length&&t.split(' ').length<=5&&!/materia|disciplina|prova|trabalho|atividade|projeto|teste/.test(t))return finishGrade(A.d=='all'?{id:'all',name:'todas as matérias'}:S.discs.find(d=>d.id==A.d),A.T,A.max,x[0],A.u);
         if(A.kind=='date'){const iso=parseDate(t);if(iso)return mkTask(A.d,A.T,iso,A.pts)}}
     const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t),d=findDisc(t);
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(formal|corporativ|empresarial|profissional)/.test(t)){S.tone='formal';save();log('Jarvis: tom formal');return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
@@ -198,7 +204,7 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     if(/(mud|alter|troc|defin)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
     if(/(modo|tema)\s*(escuro|noturno)/.test(t)){setTheme('dark');return P('Pronto, modo escuro ligado.','Modo escuro ativado.')}
     if(/(modo|tema)\s*claro/.test(t)){setTheme('light');return P('Pronto, modo claro ligado.','Modo claro ativado.')}
-    let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
+    let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria|atividades)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],atividades:['ativ','as atividades'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
     if(/^(tchau|ate mais|ate logo|encerrar|fechar|pode fechar|era so isso)/.test(t)){setTimeout(stopVoice,1400);return P(`Falou, ${nm}! Até mais.`,'Até logo. Estarei à disposição.')}
     if(/(o que|que)\s*(temos|tenho|tem)\b.*(hoje|agenda|pendente)|minha agenda|pendencia|o que falta/.test(t))return agenda();
     if(!act){
@@ -220,13 +226,84 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
     if(/(apag|remov|exclu|delet)\w*.*(materia|disciplina)/.test(t)){if(!d)return noDisc;if(vp)vp.ask={kind:'yes',fn:()=>{const n=d.name;delDisc(d.id);return P(`Pronto, a matéria ${n} foi excluída.`,`Disciplina ${n} excluída.`)}};return P(`Tem certeza que quer excluir ${d.name} e todas as notas dela?`,`Confirma a exclusão de ${d.name} e de todas as notas?`)}
     if(/(apag|remov|exclu|desfa)\w*.*(ultima|nota)/.test(t)){const g=S.grades.pop();if(!g)return P('Não tem nenhuma nota pra remover.','Não há notas para remover.');log('Nota removida por voz: '+g.name);save();render();return P('Pronto, tirei a última nota.','Última nota removida.')}
     const ty=(t.match(/prova|teste|atividade|projeto|trabalho/)||[''])[0],vm=t.match(/val\w*\s*(\d+(?:\.\d+)?)/),sm=t.match(/(?:tirei|tirou|fiz|consegui|peguei|obtive|ganhei|marquei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)/),date=parseDate(t.replace(/(primeira|segunda|terceira)\s*unidade/g,''));
-    if(ty&&date&&!sm){if(!d)return noDisc;return mkTask(d.id,cap(ty),date,vm?+vm[1]:10)}
-    if(ty&&!sm&&!vm&&/agend|marc|lembr|cri[ae]|tenho|\btem\b/.test(t)){if(!d)return noDisc;const T=cap(ty);if(vp)vp.ask={kind:'date',d:d.id,T,pts:10};return P(`Beleza! Pra quando é ${T.toLowerCase()} de ${d.name}?`,`Para qual data está marcada ${T.toLowerCase()} de ${d.name}?`)}
-    if((ty||/nota/.test(t))&&/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei/.test(t)){if(!d)return noDisc;const T=cap(ty||'atividade'),
+    const D=ty=='projeto'?{id:'all',name:'todas as matérias'}:d;
+    if(ty&&date&&!sm){if(!D)return noDisc;return mkTask(D.id,cap(ty),date,vm?+vm[1]:10)}
+    if(ty&&!sm&&!vm&&/agend|marc|lembr|cri[ae]|tenho|\btem\b/.test(t)){if(!D)return noDisc;const T=cap(ty),of=D.id=='all'?' para todas as matérias':' de '+D.name;if(vp)vp.ask={kind:'date',d:D.id,T,pts:10};return P(`Beleza! Pra quando é ${T.toLowerCase()}${of}?`,`Para qual data está marcada ${T.toLowerCase()}${of}?`)}
+    if((ty||/nota/.test(t))&&/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei/.test(t)){if(!D)return noDisc;const T=cap(ty||'atividade'),
         um=t.match(/(\d)\s*[aºªo]?\s*unidade/)||t.match(/unidade\s*(\d)/),w=t.match(/(primeira|segunda|terceira)\s*unidade/),u=um?+um[1]:w?{primeira:1,segunda:2,terceira:3}[w[1]]:1,max=vm?+vm[1]:null;
-        if(!sm){if(vp)vp.ask={kind:'score',d:d.id,T,max,u};return P(`Beleza, ${T.toLowerCase()} de ${d.name}. Quanto você tirou?`,`${T} de ${d.name}. Qual foi a nota obtida?`)}return finishGrade(d,T,max,+sm[1],u)}
+        if(!sm){if(vp)vp.ask={kind:'score',d:D.id,T,max,u};const of=D.id=='all'?' (todas as matérias)':' de '+D.name;return P(`Beleza, ${T.toLowerCase()}${of}. Quanto você tirou?`,`${T}${of}. Qual foi a nota obtida?`)}return finishGrade(D,T,max,+sm[1],u)}
     return P(`Não entendi bem, ${nm}. Pode repetir? Ex.: “tirei 8 na prova de Português”, “quanto falta pra passar em Inglês” ou “o que temos para hoje”.`,'Não compreendi a solicitação. Poderia reformular? Exemplo: “quanto falta para passar em Inglês”.')}
 document.addEventListener('input',e=>{const t=e.target;if(!t.classList||!t.classList.contains('ac'))return;const v=t.value;if(v&&v[0]!==v[0].toUpperCase()){const s=t.selectionStart;t.value=v[0].toUpperCase()+v.slice(1);try{t.setSelectionRange(s,s)}catch(_){}}});
 ['gesturestart','gesturechange','gestureend'].forEach(e=>document.addEventListener(e,ev=>ev.preventDefault()));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)remind()});
+// ---------- v6: segurança, conta de IA e atividades ----------
+const b64=b=>btoa(String.fromCharCode(...new Uint8Array(b))),unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0)),rnd=n=>crypto.getRandomValues(new Uint8Array(n));
+async function hashPw(p,salt){try{const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveBits']);return b64(await crypto.subtle.deriveBits({name:'PBKDF2',salt:unb(salt),iterations:150000,hash:'SHA-256'},k,256))}catch(e){let h=5381;const s=salt+p;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return 'w'+h}}
+// -- tela de criar senha
+function setupLock(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Proteja seu app</h1><p class="sub">Crie uma senha para entrar. Depois você pode ativar o Face ID.</p>
+<label>Senha (mínimo 4 caracteres)</label><input id="s1" type="password" autocomplete="new-password"><label>Repita a senha</label><input id="s2" type="password" autocomplete="new-password" onkeydown="if(event.key=='Enter')saveLock()">
+<button class="btn" style="margin-top:18px" onclick="saveLock()">Salvar senha</button></div></main>`}
+async function saveLock(){const a=$('#s1').value,b=$('#s2').value;if(a.length<4)return toast('A senha precisa ter pelo menos 4 caracteres.');if(a!==b)return toast('As senhas não são iguais.');
+    const salt=b64(rnd(16));S.sec={salt,hash:await hashPw(a,salt),cred:''};log('Senha de acesso criada');save();locked=false;render();bioOffer()}
+const afterLock=()=>{if(!S.asked)notifPrompt()};
+async function bioOffer(){let ok=false;try{ok=!!(window.PublicKeyCredential&&await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable())}catch(e){}
+    if(!ok)return afterLock();
+    open(`<h2>Ativar Face ID / biometria?</h2><p class="sub" style="margin-top:8px">Entre no app só com o rosto ou a digital. A senha continua valendo como reserva.</p><div class="row" style="margin-top:18px"><button class="btn alt" onclick="closeSheet();afterLock()">Agora não</button><button class="btn" onclick="bioEnable(true)">Ativar</button></div>`)}
+async function bioEnable(first){let ok=false;
+    try{const c=await navigator.credentials.create({publicKey:{challenge:rnd(32),rp:{name:'NotaUp'},user:{id:rnd(16),name:S.user.name,displayName:S.user.name},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'discouraged'},timeout:60000}});
+        S.sec.cred=b64(c.rawId);log('Face ID/biometria cadastrado');save();ok=true}catch(e){}
+    closeSheet();if(first)afterLock();toast(ok?'Face ID ativado!':'Não consegui ativar o Face ID. Ele precisa de https e de biometria configurada no aparelho.')}
+function bioToggle(){if(S.sec.cred){S.sec.cred='';log('Face ID/biometria desativado');save();render()}else bioEnable(false)}
+// -- tela de entrada
+function lockScr(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Olá, ${esc(fn1())}!</h1><p class="sub">Digite sua senha para entrar.</p>
+<label>Senha</label><input id="lp" type="password" autocomplete="current-password" onkeydown="if(event.key=='Enter')unlock()"><button class="btn" style="margin-top:14px" onclick="unlock()">Entrar</button>
+${S.sec.cred?`<button class="btn alt" style="margin-top:8px" onclick="bioUnlock()">Entrar com Face ID</button>`:''}<button class="lnk" style="margin-top:10px" onclick="forgot()">Esqueci minha senha</button></div></main>${sheet||''}`}
+async function unlock(){const e=$('#lp'),v=e?e.value:'';if(!v)return;if(await hashPw(v,S.sec.salt)===S.sec.hash){locked=false;render();remind()}else{toast('Senha incorreta.');e.value=''}}
+async function bioUnlock(){try{await navigator.credentials.get({publicKey:{challenge:rnd(32),allowCredentials:[{type:'public-key',id:unb(S.sec.cred),transports:['internal']}],userVerification:'required',timeout:60000}});locked=false;render();remind()}catch(e){toast('O Face ID não funcionou. Use a senha.')}}
+function forgot(){ask('Esqueci a senha: isso apaga TODOS os dados do app neste aparelho. Continuar?',()=>{try{localStorage.removeItem('notaup')}catch(e){}location.reload()},'Apagar tudo')}
+let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now();return}
+    if(AI.picking){AI.picking=false;hiddenAt=0;return}
+    if(S.sec&&!locked&&hiddenAt&&Date.now()-hiddenAt>60000){locked=true;keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;sheet=null;render()}hiddenAt=0});
+// -- cartões em Configurações
+const secCard=()=>{const on=!!(S.sec&&S.sec.cred);return `<div class="card" style="margin-top:12px"><h2>Segurança</h2><p class="sub">O app pede senha ao entrar e quando você volta depois de mais de 1 minuto fora.</p><div class="row sp" style="margin-top:12px"><span style="font-weight:600">Face ID / biometria</span><button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Face ID" onclick="bioToggle()"></button></div><button class="btn sm alt" style="margin-top:12px" onclick="sheetPw()">Alterar senha</button></div>`};
+function sheetPw(){open(`<h2>Alterar senha</h2><label>Senha atual</label><input id="p0" type="password"><label>Nova senha</label><input id="p1" type="password"><label>Repita a nova senha</label><input id="p2" type="password"><div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Cancelar</button><button class="btn" style="flex:1" onclick="changePw()">Salvar</button></div>`)}
+async function changePw(){const a=$('#p0').value,n=$('#p1').value,r=$('#p2').value;if(await hashPw(a,S.sec.salt)!==S.sec.hash)return toast('Senha atual incorreta.');if(n.length<4)return toast('A nova senha precisa ter pelo menos 4 caracteres.');if(n!==r)return toast('As senhas não são iguais.');
+    const salt=b64(rnd(16));S.sec.salt=salt;S.sec.hash=await hashPw(n,salt);log('Senha alterada');save();closeSheet();toast('Senha alterada!')}
+const defModel=p=>p=='openai'?'gpt-4o':'claude-sonnet-5-5';
+const aiCard=()=>{const a=S.ai;return `<div class="card" style="margin-top:12px"><h2>Conta de IA</h2>${a.key?`<p class="sub">Vinculado a <b>${a.prov=='openai'?'ChatGPT (OpenAI)':'Claude (Anthropic)'}</b> · modelo ${esc(a.model||defModel(a.prov))}</p><div class="row" style="margin-top:12px"><button class="btn sm alt" onclick="sheetLink()">Trocar</button><button class="btn sm alt" onclick="ask('Desvincular a conta de IA?',unlink,'Desvincular')">Desvincular</button></div>`:`<p class="sub">Vincule o Claude ou o ChatGPT para resolver atividades por foto ou texto.</p><button class="btn" style="margin-top:12px" onclick="sheetLink()">Vincular conta</button>`}</div>`};
+function sheetLink(){const a=S.ai;open(`<h2>Vincular conta</h2><p class="sub" style="margin-top:6px">O vínculo é feito com a chave de API da sua conta. Ela fica guardada só neste aparelho.</p>
+<label>Serviço</label><select id="lpv" onchange="$('#lmd').placeholder=defModel(this.value)"><option value="claude" ${a.prov!='openai'?'selected':''}>Claude (Anthropic)</option><option value="openai" ${a.prov=='openai'?'selected':''}>ChatGPT (OpenAI)</option></select>
+<label>Chave de API</label><input id="lky" type="password" autocomplete="off" placeholder="Cole a chave aqui"><label>Modelo (opcional)</label><input id="lmd" placeholder="${defModel(a.prov)}" value="${esc(a.model||'')}">
+<p class="sub" style="margin-top:8px">Onde criar: console.anthropic.com (Claude) ou platform.openai.com (ChatGPT). O uso é cobrado à parte da assinatura do chat.</p>
+<div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Cancelar</button><button class="btn" style="flex:1" onclick="saveLink()">Vincular</button></div>`)}
+function saveLink(){const k=$('#lky').value.trim();if(k.length<20)return toast('Cole a chave de API completa.');S.ai={prov:$('#lpv').value,key:k,model:$('#lmd').value.trim()};S.chat=[];log('Conta de IA vinculada: '+(S.ai.prov=='openai'?'ChatGPT':'Claude'));save();closeSheet();toast('Conta vinculada!')}
+function unlink(){S.ai.key='';log('Conta de IA desvinculada');save();render()}
+// -- aba Atividades
+const SYS='Você é o assistente de estudos do app NotaUp. Responda sempre em português do Brasil. Resolva a atividade que o aluno enviar (texto ou foto) explicando o passo a passo de forma clara e curta, e destaque a resposta final. Se a foto estiver ilegível ou faltar informação, diga o que falta.';
+const fmt=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+function ativ(){return `<div class="row sp"><h1>Atividades</h1>${S.chat.length?`<button class="lnk" onclick="aiClear()">Nova conversa</button>`:''}</div><p class="sub">Mande uma foto ou escreva a atividade e receba a resolução.</p>
+${S.ai.key?`<div id="aim" style="margin-top:14px"></div><div class="cmp"><div id="aip"></div><div class="row" style="align-items:flex-end"><button class="btn sm alt" onclick="AI.picking=true;$('#aif').click()" aria-label="Enviar foto" style="padding:12px">📷</button><textarea id="ait" rows="1" placeholder="Escreva a atividade…" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea><button class="btn sm" id="ais" onclick="aiSend()" style="padding:12px 14px">Enviar</button></div><input id="aif" type="file" accept="image/*" style="display:none" onchange="aiPick(this)"></div>`
+    :`<div class="card" style="margin-top:14px"><h2>Vincule sua conta</h2><p class="sub" style="margin-top:6px">Conecte o Claude ou o ChatGPT para tirar foto de uma atividade, ou escrevê-la, e receber a resposta aqui, como no chat.</p><button class="btn" style="margin-top:12px" onclick="sheetLink()">Vincular conta</button></div>`}`}
+function aiPaint(sc){const m=$('#aim');if(!m)return;
+    m.innerHTML=S.chat.map(x=>`<div class="b ${x.r=='u'?'u':'j'} ai">${x.img?'<div class="sub">📷 foto enviada</div>':''}${fmt(x.t)}</div>`).join('')+(AI.busy?`<div class="st"><span class="wave"><i></i><i></i><i></i><i></i></span>Pensando…</div>`:'');
+    const p=$('#aip');if(p)p.innerHTML=AI.img?`<div class="row sp card" style="padding:8px;margin-bottom:8px"><img src="${AI.img}" style="height:56px;border-radius:10px" alt="Foto"><button class="btn sm alt" onclick="AI.img=null;aiPaint()">Remover foto</button></div>`:'';
+    const s=$('#ais');if(s)s.disabled=AI.busy;if(sc){const mn=document.querySelector('main');if(mn)mn.scrollTop=mn.scrollHeight}}
+function aiPick(i){AI.picking=false;const fl=i.files[0];i.value='';if(!fl)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1280/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);AI.img=c.toDataURL('image/jpeg',.82);aiPaint(true)};im.onerror=()=>toast('Não consegui abrir essa imagem.');im.src=r.result};r.readAsDataURL(fl)}
+function aiClear(){S.chat=[];AI.img=null;save();render()}
+async function aiSend(){if(AI.busy)return;const ta=$('#ait'),t=ta.value.trim(),img=AI.img;if(!t&&!img)return toast('Escreva a atividade ou envie uma foto.');
+    const hist=S.chat.filter(x=>!x.err).slice(-10).map(x=>({r:x.r,t:x.img?'[foto enviada] '+x.t:x.t}));
+    S.chat.push({r:'u',t:t||'(resolva a atividade da foto)',img:!!img});ta.value='';ta.style.height='auto';AI.img=null;AI.busy=true;log('Atividade enviada ao assistente de IA'+(img?' (com foto)':''));save();aiPaint(true);
+    try{S.chat.push({r:'j',t:await aiCall(hist,t||'Resolva a atividade da foto.',img)})}catch(e){S.chat.push({r:'j',t:'⚠️ '+e.message,err:true})}
+    AI.busy=false;S.chat=S.chat.slice(-40);save();if(view=='ativ')aiPaint(true)}
+async function aiCall(hist,text,img){const a=S.ai,md=a.model||defModel(a.prov);let r;
+    const H=hist.map(x=>({role:x.r=='u'?'user':'assistant',content:x.t}));while(H.length&&H[0].role!='user')H.shift();
+    try{if(a.prov=='openai'){const cur=img?[{type:'text',text},{type:'image_url',image_url:{url:img}}]:text;
+        r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+a.key},body:JSON.stringify({model:md,messages:[{role:'system',content:SYS},...H,{role:'user',content:cur}]})})}
+    else{const cur=img?[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:img.split(',')[1]}},{type:'text',text}]:text;
+        r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':a.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:md,max_tokens:2048,system:SYS,messages:[...H,{role:'user',content:cur}]})})}
+    }catch(e){throw new Error('Sem conexão com a internet. Tente de novo.')}
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){const m=j.error&&(j.error.message||'');if(r.status==401)throw new Error('Chave de API inválida. Vincule a conta de novo em Configurações.');if(r.status==429)throw new Error('Limite de uso ou saldo da conta esgotado.');throw new Error('Erro '+r.status+(typeof m=='string'&&m?': '+m:''))}
+    return a.prov=='openai'?j.choices[0].message.content:j.content.filter(c=>c.type=='text').map(c=>c.text).join('\n')}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});
 render();remind();setInterval(remind,60000);
