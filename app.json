@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "NotaUp",
+    "slug": "notaup",
+    "scheme": "notaup",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "br.com.notaup.app"
+    },
+    "android": {
+      "package": "br.com.notaup.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ECE9E0",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      ["expo-local-authentication", { "faceIDPermission": "O NotaUp usa o Face ID para você entrar no app sem digitar a senha." }],
+      "expo-secure-store",
+      ["expo-image-picker", { "photosPermission": "O NotaUp acessa suas fotos para você escolher a foto de perfil.", "cameraPermission": false, "microphonePermission": false }],
+      ["expo-notifications", { "color": "#687B68" }],
+      ["expo-speech-recognition", {
+        "microphonePermission": "O NotaUp usa o microfone para você falar com o assistente.",
+        "speechRecognitionPermission": "O NotaUp transforma sua fala em texto para o assistente entender seus comandos.",
+        "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+      }]
+    ]
+  }
+}
