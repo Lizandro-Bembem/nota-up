@@ -52,3 +52,6 @@ select:disabled{opacity:.7}
 .pv canvas{touch-action:none;cursor:grab;width:240px;height:240px}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.chips button{border:1px solid var(--sage);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;font-weight:600;border-radius:14px;padding:6px 10px;cursor:pointer}
+.vp{padding-top:26px}.vx{position:absolute;top:4px;right:8px;background:0;border:0;color:var(--mut);font-size:15px;padding:6px 8px;cursor:pointer;font-family:inherit}
+.vb{flex:none;width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center;cursor:pointer}.vb svg{width:20px;height:20px}.vb.on{background:var(--green);color:#fff;animation:pulse 1.2s infinite}
+#vbtn{display:flex}

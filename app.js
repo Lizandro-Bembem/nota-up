@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s),app=$('#app');
-const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'};
+const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'};
 let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo'},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
@@ -134,26 +134,32 @@ function phBind(){const c=$('#pc'),P=new Map(),zm=k=>ph.z=Math.max(1,Math.min(6,
 function phSave(){if(!ph.img)return toast('Toque em “Editar foto” e escolha uma imagem.');const c=document.createElement('canvas');phDraw(c,200);S.user.photo=c.toDataURL('image/jpeg',.85);log('Foto de perfil alterada');save();closeSheet()}
 function phRemove(){S.user.photo='';log('Foto de perfil removida');save();closeSheet()}
 // voz
-const vpBox=()=>`<div class="vp"><div id="vpm">${vpInner()}</div><div class="row" style="margin-top:8px"><input id="vt" placeholder="…ou digite o comando" onkeydown="if(event.key=='Enter')vtype()"><button class="btn sm" onclick="stopVoice()">Cancelar</button></div></div>`;
-function vpaint(){const e=$('#vpm');if(e&&vp)e.innerHTML=vpInner()}
+const vpBox=()=>`<div class="vp"><button class="vx" onclick="stopVoice()" aria-label="Fechar">✕</button><div id="vpm">${vpInner()}</div><div class="row" style="margin-top:8px"><input id="vt" placeholder="…ou digite o comando" onkeydown="if(event.key=='Enter')vtype()"><span id="vbtn">${vbtn()}</span></div></div>`;
+const vbtn=()=>`<button class="vb ${keep?'on':''}" onclick="toggleMic()" aria-label="${keep?'Parar de ouvir':'Falar'}">${keep?IC.stop:IC.mic}</button>`;
+function toggleMic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!vp)return;
+    if(keep){keep=false;clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp.live='';vp.st='Parei de ouvir. Toque no microfone para falar.';return vpaint()}
+    if(!SR){vp.st='Voz indisponível aqui. Digite o comando.';return vpaint()}
+    keep=true;vp.st='Iniciando microfone…';vpaint();listen(SR)}
+function vpaint(){const e=$('#vpm');if(e&&vp)e.innerHTML=vpInner();const b=$('#vbtn');if(b&&vp)b.innerHTML=vbtn()}
 function vtype(){const i=$('#vt'),v=i.value.trim();i.value='';if(v)handle(v,1)}
 function handle(tx,typed){log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;try{a=voice(tx)}catch(e){console.error(e);a=P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}say('j',a)}
 function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
 function mic(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;vp={msgs:[{r:'j',t:P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`)}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();if(SR)listen(SR)}
 // reconhecimento de voz: UMA instância reaproveitada (recriar a cada frase travava o microfone)
 let running=false,lastEv=0,lastFin={t:'',at:0},rstTimer=null;
-function recStart(){if(!keep||!rec||running)return;try{rec.start()}catch(e){}}
+let guardT=null;
+function recStart(){if(!keep||!rec||running)return;try{rec.start()}catch(e){}if(!guardT)guardT=setTimeout(()=>{guardT=null;if(keep&&!running){keep=false;try{rec.abort()}catch(e){}if(vp){vp.st='Toque no microfone para falar.';vpaint()}}},2500)}
 function recLater(ms){clearTimeout(rstTimer);rstTimer=setTimeout(recStart,ms)}
 function finalText(tx){tx=(tx||'').trim();if(!tx)return;const n=Date.now();if(tx===lastFin.t&&n-lastFin.at<2000)return;lastFin={t:tx,at:n};handle(tx)}
 function listen(SR){if(!keep)return;
     if(!rec){let r;try{r=new SR()}catch(e){if(vp){vp.st='Não consegui iniciar o microfone. Digite o comando.';vpaint()}return}rec=r;r.lang='pt-BR';r.continuous=false;r.interimResults=true;r.maxAlternatives=1;
-        r.onstart=()=>{running=true;lastEv=Date.now();if(vp){vp.st='Ouvindo…';vpaint()}};
+        r.onstart=()=>{clearTimeout(guardT);guardT=null;running=true;lastEv=Date.now();if(vp){vp.st='Ouvindo…';vpaint()}};
         r.onresult=e=>{lastEv=Date.now();let tx='',fin=false;for(let i=e.resultIndex;i<e.results.length;i++){tx+=e.results[i][0].transcript;if(e.results[i].isFinal)fin=true}if(!vp)return;if(fin){vp.live='';finalText(tx)}else{vp.live=tx;vpaint()}};
         r.onerror=e=>{if(!vp)return;const E=e.error;if(E=='not-allowed'||E=='service-not-allowed'){keep=false;vp.st='Microfone bloqueado. Libere nas configurações do navegador ou digite o comando.'}else if(E=='network'){keep=false;vp.st='Sem internet para reconhecer a voz. Digite o comando.'}else if(E=='audio-capture')vp.st='Não achei o microfone.';else if(E=='no-speech')vp.st='Não ouvi nada. Pode falar.';else return;vpaint()};
         r.onend=()=>{running=false;if(vp&&vp.live){const tx=vp.live;vp.live='';finalText(tx)}if(keep)recLater(350)}}
     recStart()}
-function stopVoice(){keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;render()}
-setInterval(()=>{if(!keep||!vp||!rec)return;if(!running)recStart();else if(Date.now()-lastEv>20000){try{rec.abort()}catch(e){}}},2000);
+function stopVoice(){keep=false;clearTimeout(rstTimer);clearTimeout(guardT);guardT=null;try{rec&&rec.abort()}catch(e){}vp=null;render()}
+setInterval(()=>{if(!keep||!vp||!rec)return;if(running&&Date.now()-lastEv>20000){try{rec.abort()}catch(e){}}},2000);
 // ---------- v4: Jarvis conversacional ----------
 const hr=()=>{const h=new Date().getHours();return h<12?'bom dia':h<18?'boa tarde':'boa noite'},P=(a,b)=>S.tone=='formal'?b:a,fn1=()=>S.user.name.trim().split(' ')[0];
 function lev(a,b){const d=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=d[0];d[0]=i;for(let j=1;j<=b.length;j++){const t=d[j];d[j]=Math.min(d[j]+1,d[j-1]+1,p+(a[i-1]==b[j-1]?0:1));p=t}}return d[b.length]}
