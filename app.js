@@ -277,7 +277,7 @@ async function bioUnlock(){if(bio.busy||!S.sec||!S.sec.cred||!locked)return;bio.
     catch(e){bio.busy=0;bio.msg='Não reconheci você. Tente novamente com o Face ID ou digite sua senha.';if(S.sec&&locked)lockScr()}}
 function forgot(){ask('Esqueci a senha: isso apaga TODOS os dados do app neste aparelho. Continuar?',()=>{try{localStorage.removeItem('notaup')}catch(e){}location.reload()},'Apagar tudo')}
 let hiddenAt=0;document.addEventListener('visibilitychange',()=>{if(document.hidden){hiddenAt=Date.now();return}
-    if(AI.picking){AI.picking=false;hiddenAt=0;return}
+    if(AI.picking){AI.picking=false;hiddenAt=0;if(lk.p&&sheet&&$('#lky'))linkPaste(true);return}
     if(S.sec&&!locked&&hiddenAt&&Date.now()-hiddenAt>60000){locked=true;keep=false;clearTimeout(rstTimer);try{rec&&rec.abort()}catch(e){}vp=null;sheet=null;stopSpeak();bioReset();render()}hiddenAt=0});
 // -- cartões em Configurações
 const secCard=()=>{const on=!!(S.sec&&S.sec.cred);return `<div class="card" style="margin-top:12px"><h2>Segurança</h2><p class="sub">Com o Face ID ativado, o app abre direto nele. Se não reconhecer, você tenta de novo ou digita a senha. O app também trava depois de 1 minuto fora.</p><div class="row sp" style="margin-top:12px"><span style="font-weight:600">Face ID / biometria</span><button class="sw ${on?'on':''}" role="switch" aria-checked="${on}" aria-label="Face ID" onclick="bioToggle()"></button></div>${S.sec.pw?`<div class="row sp" style="margin-top:12px"><span style="font-weight:600">Minha senha</span><div class="row"><b>${showPw?esc(S.sec.pw):'••••••'}</b><button class="btn sm alt" onclick="showPw=!showPw;render()">${showPw?'Ocultar':'Ver'}</button></div></div>`:`<p class="sub" style="margin-top:12px">Para poder ver sua senha aqui, toque em “Alterar senha” e defina-a de novo.</p>`}<button class="btn sm alt" style="margin-top:12px" onclick="sheetPw()">Alterar senha</button></div>`};
@@ -286,12 +286,27 @@ async function changePw(){const a=$('#p0').value,n=$('#p1').value,r=$('#p2').val
     const salt=b64(rnd(16));S.sec.salt=salt;S.sec.hash=await hashPw(n,salt);S.sec.pw=n;log('Senha alterada');save();closeSheet();toast('Senha alterada!')}
 const defModel=p=>p=='openai'?'gpt-4o':'claude-sonnet-5-5';
 const aiCard=()=>{const a=S.ai;return `<div class="card" style="margin-top:12px"><h2>Conta de IA</h2>${a.key?`<p class="sub">Vinculado a <b>${a.prov=='openai'?'ChatGPT (OpenAI)':'Claude (Anthropic)'}</b> · modelo ${esc(a.model||defModel(a.prov))}</p><div class="row" style="margin-top:12px"><button class="btn sm alt" onclick="sheetLink()">Trocar</button><button class="btn sm alt" onclick="ask('Desvincular a conta de IA?',unlink,'Desvincular')">Desvincular</button></div>`:`<p class="sub">Vincule o Claude ou o ChatGPT para resolver atividades por foto ou texto.</p><button class="btn" style="margin-top:12px" onclick="sheetLink()">Vincular conta</button>`}</div>`};
-function sheetLink(){const a=S.ai;open(`<h2>Vincular conta</h2><p class="sub" style="margin-top:6px">O vínculo é feito com a chave de API da sua conta. Ela fica guardada só neste aparelho.</p>
-<label>Serviço</label><select id="lpv" onchange="$('#lmd').placeholder=defModel(this.value)"><option value="claude" ${a.prov!='openai'?'selected':''}>Claude (Anthropic)</option><option value="openai" ${a.prov=='openai'?'selected':''}>ChatGPT (OpenAI)</option></select>
-<label>Chave de API</label><input id="lky" type="password" autocomplete="off" placeholder="Cole a chave aqui"><label>Modelo (opcional)</label><input id="lmd" placeholder="${defModel(a.prov)}" value="${esc(a.model||'')}">
-<p class="sub" style="margin-top:8px">Onde criar: console.anthropic.com (Claude) ou platform.openai.com (ChatGPT). O uso é cobrado à parte da assinatura do chat.</p>
-<div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Cancelar</button><button class="btn" style="flex:1" onclick="saveLink()">Vincular</button></div>`)}
-function saveLink(){const k=$('#lky').value.trim();if(k.length<20)return toast('Cole a chave de API completa.');S.ai={prov:$('#lpv').value,key:k,model:$('#lmd').value.trim()};S.chat=[];log('Conta de IA vinculada: '+(S.ai.prov=='openai'?'ChatGPT':'Claude'));save();closeSheet();toast('Conta vinculada!')}
+const PV={claude:{n:'Claude',co:'Anthropic',url:'https://console.anthropic.com/settings/keys'},openai:{n:'ChatGPT',co:'OpenAI',url:'https://platform.openai.com/api-keys'}};
+let lk={p:'',busy:0};
+const linkPick=()=>`<h2>Vincular conta</h2><p class="sub" style="margin-top:6px">Escolha com qual aplicativo você quer conectar o NotaUp.</p><div class="g" style="margin-top:16px">${['openai','claude'].map(k=>`<button class="btn prov" onclick="linkStep('${k}')"><span class="pdot">${PV[k].n[0]}</span><span><b>Vincular com ${PV[k].n}</b><div class="sub">${PV[k].co}</div></span></button>`).join('')}</div><button class="btn alt" style="margin-top:14px" onclick="closeSheet()">Cancelar</button>`;
+function sheetLink(){lk={p:'',busy:0};open(linkPick())}
+function linkStep(p){lk={p,busy:0};const v=PV[p];open(`<div class="row"><button class="btn sm alt" onclick="sheetLink()" aria-label="Voltar">‹</button><h2>Conectar ${v.n}</h2></div>
+<ol class="stp"><li>Toque em <b>Abrir ${v.n}</b> e entre com a mesma conta que você usa no aplicativo.</li><li>Crie uma chave de API e copie.</li><li>Volte para cá e toque em <b>Colar e vincular</b>. Se o aparelho deixar, a chave é colada sozinha quando você voltar.</li></ol>
+<button class="btn" onclick="linkOpen()">Abrir ${v.n}</button><button class="btn" style="margin-top:8px" onclick="linkPaste()">Colar e vincular</button>
+<label>Ou cole a chave aqui</label><input id="lky" type="password" autocomplete="off" placeholder="Chave de API"><div id="lst" class="sub" style="margin-top:8px"></div>
+<button class="btn alt" style="margin-top:8px" onclick="saveLink()">Vincular com a chave colada</button>
+<p class="sub" style="margin-top:12px">O ${v.n} não permite entrar com a conta direto em outros apps. Por isso o NotaUp usa uma chave de API da sua conta, que fica guardada só neste aparelho. O uso é cobrado à parte da assinatura do chat.</p>`)}
+function linkOpen(){AI.picking=true;const a=document.createElement('a');a.href=PV[lk.p].url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove()}
+function lkMsg(m,bad){const e=$('#lst');if(e){e.textContent=m;e.className='sub '+(bad?'warn':'')}}
+async function linkPaste(silent){let t='';try{t=(await navigator.clipboard.readText()).trim()}catch(e){}
+    if(silent?!/^sk-/.test(t):t.length<20){if(!silent)lkMsg('Não achei a chave copiada. Copie a chave e tente de novo, ou cole no campo abaixo.',1);return}
+    const e=$('#lky');if(!e)return;e.value=t;saveLink()}
+async function verifyKey(p,k){let r;try{r=await fetch(p=='openai'?'https://api.openai.com/v1/models':'https://api.anthropic.com/v1/models',{headers:p=='openai'?{Authorization:'Bearer '+k}:{'x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}})}catch(e){throw new Error('Sem conexão com a internet. Tente de novo.')}
+    if(r.status==401||r.status==403)throw new Error('Essa chave não foi aceita. Confira se copiou inteira e se é do '+PV[p].n+'.');if(!r.ok&&r.status!=429)throw new Error('Não consegui verificar a chave (erro '+r.status+').')}
+async function saveLink(){if(lk.busy)return;const e=$('#lky'),k=((e&&e.value)||'').trim();if(k.length<20)return lkMsg('Cole a chave de API completa.',1);
+    const p=/^sk-ant-/.test(k)?'claude':/^sk-/.test(k)?'openai':lk.p;lk.busy=1;lkMsg('Verificando a conta…');
+    try{await verifyKey(p,k)}catch(er){lk.busy=0;return lkMsg(er.message,1)}
+    lk.busy=0;S.ai={prov:p,key:k,model:S.ai.prov==p?S.ai.model:''};S.chat=[];log('Conta de IA vinculada: '+PV[p].n);save();closeSheet();toast('✓ Conta '+PV[p].n+' vinculada!')}
 function unlink(){S.ai.key='';log('Conta de IA desvinculada');save();render()}
 // -- aba Atividades
 const SYS='Você é o assistente de estudos do app NotaUp. Responda sempre em português do Brasil. Resolva a atividade que o aluno enviar (texto ou foto) explicando o passo a passo de forma clara e curta, e destaque a resposta final. Se a foto estiver ilegível ou faltar informação, diga o que falta.';
