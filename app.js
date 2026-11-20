@@ -9,7 +9,7 @@ const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
 const EMAILJS={serviceId:'',templateId:'',publicKey:''};
 let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},ai:{key:'',model:'gpt-4o-mini'},voice:{on:true,uri:'',rate:1},rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
-S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);S.ai=Object.assign({key:'',model:'gpt-4o-mini',prov:'openai',ks:{},ms:{}},S.ai);S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);
+S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);S.ai=Object.assign({key:'',model:'gpt-4o-mini',prov:'openai',ks:{},ms:{}},S.ai);S.voice=Object.assign({on:true,uri:'',rate:1,kind:'mulher'},S.voice);
 let locked=!!(S.user&&S.sec.hash),lk={msg:'',busy:0,tried:0,pw:0,ac:null,rst:null};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -27,8 +27,12 @@ function need(d){const u=[1,2,3].map(i=>unitAvg(d,i)),got=u.filter(x=>x!==null),
     return req<=0?'Média já garantida ✓':req/left>10?'Não dá mais para atingir a média só com as unidades restantes':'Precisa de '+f(req/left)+' em cada unidade restante'}
 const col=v=>v===null?'':v>=S.target?'ok':'warn';
 // views
-let pgAnim=1,sheetAnim=0,vpAnim=0,aiWait=0;
-const go=v=>{view=v;sheet=null;pgAnim=1;render()};
+let pgAnim=1,sheetAnim=0,vpAnim=0,aiWait=0,pgDir=0,goT=0,logAll=false,logAnim=0;const TABS=['home','hist','cal','cfg'];
+const go=v=>{if(goT)return;const m=$('main'),d=TABS.indexOf(v)>=TABS.indexOf(view)?1:-1;
+    if(v==view&&!sheet)return;
+    if(v==view||!m||locked||!S.user||vp&&0){view=v;sheet=null;pgAnim=1;pgDir=0;return render()}
+    m.style.setProperty('--dx',(-d*34)+'px');m.classList.add('leave');
+    goT=setTimeout(()=>{goT=0;view=v;sheet=null;pgAnim=1;pgDir=d;render()},180)};
 function avatar(){return `<div class="av">${S.user.photo?`<img src="${S.user.photo}" alt="">`:esc(S.user.name[0]||'?').toUpperCase()}</div>`}
 function ob(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Suas Notas, Sua Evolução</h1><p class="sub">Crie seu perfil para começar.</p>
 <label>Seu nome</label><input class="ac" autocapitalize="sentences" id="n" placeholder="Ex.: Lizandro">
@@ -62,8 +66,8 @@ function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
  <div class="card" style="margin-top:12px"><label style="margin:0">Média para aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
- <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg"><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${aiCard()}${voiceCard()}
- <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${S.log.map(l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>'}</div>`}
+ <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${aiCard()}${voiceCard()}
+ <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${logList()}</div>`}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
 const closeSheet=()=>{sheet=null;render()};
@@ -86,7 +90,7 @@ function render(){applyTheme();
     if(!S.user){return ob()}
     if(locked){return lockView()}
     const v={home,hist,cal,cfg}[view]();
-    const pa=pgAnim;pgAnim=0;app.innerHTML=`<main class="${pa?'pg':''}">${v}</main>${vp?vpBox():`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav>${[['home','Início'],['hist','Histórico'],['cal','Calendário'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheetH()}`;if(pa)countUp();vpScroll();
+    const pa=pgAnim;pgAnim=0;const _m=$('main'),_s=(!pa&&_m)?_m.scrollTop:0;app.innerHTML=`<main class="${pa?'pg':''}" style="--enx:${pgDir*34}px">${v}</main>${vp?vpBox():`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav class="${pa?'nv':''}">${[['home','Início'],['hist','Histórico'],['cal','Calendário'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheetH()}`;if(_s){const m2=$('main');if(m2)m2.scrollTop=_s}if(pa)countUp();vpScroll();
 }
 function ask(msg,fn,label){cb=fn;openSheet(`<h2>${esc(msg)}</h2><div class="row" style="margin-top:18px"><button class="btn alt" onclick="closeSheet()">Cancelar</button><button class="btn" onclick="const g=cb;closeSheet();g&&g()">${label||'Confirmar'}</button></div>`)}
 // calendário / tarefas
@@ -128,7 +132,9 @@ function setNotif(on){S.asked=1;if(!on){S.notif=false;log('Notificações desati
 // ---------- v3: tema, logo, foto por gestos, voz fluida ----------
 const LG=()=>`<img src="${S.theme=='dark'?'logo-dark.png':'logo.png'}" alt="">`;
 function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme=='dark'?'dark':'light')}
-function setTheme(t){S.theme=t;log('Tema alterado para '+(t=='dark'?'escuro':'claro'));save();render()}
+function segSet(id,right){const g=document.getElementById(id);if(!g)return;g.classList.toggle('r',!!right);g.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',(i==1)==!!right))}
+function setTheme(t){if(S.theme==t)return;S.theme=t;log('Tema alterado para '+(t=='dark'?'escuro':'claro'));save();applyTheme();document.querySelectorAll('.logo img').forEach(i=>i.src=t=='dark'?'logo-dark.png':'logo.png');segSet('thSeg',t=='dark')}
+function setTone(t){if(S.tone==t)return;S.tone=t;log('Estilo de conversa: '+t);save();segSet('toneSeg',t=='formal')}
 function tpChg(){const t=$('#tp').value,d=$('#td');if(t=='Projeto'){d.innerHTML='<option value="all">Válido para todas as matérias</option>';d.disabled=true}else{d.innerHTML=dopts();d.disabled=false}}
 // foto de perfil (arrastar e pinçar)
 function sheetPhoto(){ph={img:null,z:1,ox:0,oy:0};
@@ -432,7 +438,7 @@ function aiCard(){const k=S.ai.key,p=aiP(),cl=S.ai.prov=='claude';return `<div c
  <div class="row" style="margin-top:12px">${k?`<button class="btn sm alt" onclick="aiTest()">Testar conexão</button><button class="btn sm alt" onclick="aiGetKey()">Ver chaves</button><button class="btn sm alt" onclick="aiOff()">Desconectar</button>`:`<button class="btn sm" onclick="aiOn()">Conectar</button>`}</div>
  <p class="sub" id="ais" style="margin-top:8px"></p>
  <p class="sub" style="margin-top:4px">A assinatura (ChatGPT Plus/Pro ou Claude Pro/Max) é separada da API. Créditos: ${p.bill}. A chave fica salva só neste aparelho.</p>
- <label>Estilo de conversa</label><div class="seg" style="margin-top:6px;width:fit-content"><button class="${S.tone!='formal'?'on':''}" onclick="S.tone='amigo';save();render()">Amigo</button><button class="${S.tone=='formal'?'on':''}" onclick="S.tone='formal';save();render()">Formal</button></div></div>`}
+ <label>Estilo de conversa</label><div class="seg two ${S.tone=='formal'?'r':''}" id="toneSeg" style="margin-top:6px;width:fit-content"><i class="th"></i><button class="${S.tone!='formal'?'on':''}" onclick="setTone('amigo')">Amigo</button><button class="${S.tone=='formal'?'on':''}" onclick="setTone('formal')">Formal</button></div></div>`}
 function aiProv(v){if(S.ai.prov==v)return;S.ai.ks[S.ai.prov]=S.ai.key;S.ai.ms[S.ai.prov]=S.ai.model;S.ai.prov=v;S.ai.key=S.ai.ks[v]||'';S.ai.model=S.ai.ms[v]||AI_P[v].models[0][0];aiHist=[];aiWarned={};log('Assistente: '+AI_P[v].name);save();render()}
 function aiGetKey(){aiWait=1;const u=aiP().url,w=window.open(u,'_blank');if(w){try{w.opener=null}catch(e){}}else location.href=u;toast('Abri o site do '+aiP().name+'. Crie e copie a chave: ao voltar eu conecto sozinho.')}
 async function aiPaste(q){let t='';try{t=((await navigator.clipboard.readText())||'').trim()}catch(e){if(!q)toast('Não consegui ler a área de transferência. Cole a chave no campo.');return}
@@ -453,14 +459,14 @@ const ttsClean=t=>String(t).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0
 function ttsChunks(t){const out=[];let cur='';for(const p of t.split(/(?<=[.!?;:])\s+/)){if(cur&&(cur+' '+p).length>180){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
 function speak(t,force){const s=TTS();if(!s||(!S.voice.on&&!force))return;const txt=ttsClean(t),parts=ttsChunks(txt);if(!parts.length)return;
     const gen=++spkGen;try{s.cancel()}catch(e){}speaking=true;vpaint();if(rec&&running){try{rec.abort()}catch(e){}}
-    const v=pickVoice(),rate=S.voice.rate||1,done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;vpaint();if(keep&&vp)recLater(300)};
-    parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;if(i==parts.length-1){u.onend=done;u.onerror=done}s.speak(u)});
+    const q=vParams(),v=q.v,rate=(S.voice.rate||1)*q.r,done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;vpaint();if(keep&&vp)recLater(300)};
+    parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;u.pitch=q.p;if(i==parts.length-1){u.onend=done;u.onerror=done}s.speak(u)});
     clearTimeout(spkT);spkT=setTimeout(done,txt.length*110/rate+4000);try{if(s.paused)s.resume()}catch(e){}}
 function ttsStop(){spkGen++;clearTimeout(spkT);speaking=false;try{const s=TTS();s&&s.cancel()}catch(e){}}
 function voiceOpts(){const L=voices(),cur=pickVoice();return L.length?L.map(v=>`<option value="${esc(v.voiceURI)}" ${cur&&cur.voiceURI==v.voiceURI?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join(''):'<option value="">Voz padrão do aparelho</option>'}
 function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2>${TTS()?`
  <div class="row sp" style="margin-top:12px"><span style="font-weight:600">Falar as respostas</span><button class="sw ${S.voice.on?'on':''}" id="ttsSw" role="switch" aria-checked="${!!S.voice.on}" aria-label="Falar as respostas" onclick="S.voice.on=!S.voice.on;log('Voz do assistente '+(S.voice.on?'ligada':'desligada'));save();if(!S.voice.on)ttsStop();render()"></button></div>
- <label>Voz</label><select id="vsel" onchange="S.voice.uri=this.value;save();voiceTest()">${voiceOpts()}</select>
+ <label>Voz</label><div class="vk">${[['mulher','👩','Mulher'],['homem','👨','Homem'],['menino','👦','Menino'],['robo','🤖','Robótica']].map(([k,e,l])=>`<button data-k="${k}" class="${(S.voice.kind||'mulher')==k?'on':''}" onclick="setVoice('${k}')"><span>${e}</span>${l}</button>`).join('')}</div>
  <label>Velocidade</label><input type="range" min="0.7" max="1.5" step="0.1" value="${S.voice.rate}" onchange="S.voice.rate=+this.value;save();voiceTest()">
  <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
 function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
@@ -468,6 +474,17 @@ function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick},
 // ao abrir o app bloqueado, o Face ID/biometria é chamado automaticamente
 if(locked&&hasBio())setTimeout(bioUnlock,300);
 
+// ================= v8: vozes, auditoria =================
+const FEM=/luciana|fernanda|francisca|maria|vit[oó]ria|raquel|camila|female|feminin|google portugu/i,MAL=/felipe|daniel|ant[oó]nio|jorge|ricardo|thiago|jo[aã]o|male|masculin/i;
+function vParams(){const L=voices(),br=L.filter(v=>/pt[-_]BR/i.test(v.lang)),pool=br.length?br:L,k=S.voice.kind||'mulher',male=pool.find(v=>MAL.test(v.name)&&!/female|feminin/i.test(v.name)),fem=pool.find(v=>FEM.test(v.name)&&!MAL.test(v.name))||pool.find(v=>!MAL.test(v.name))||pool[0]||null;
+    if(k=='homem')return male?{v:male,p:1,r:.97}:{v:fem,p:.68,r:.95};
+    if(k=='menino')return male?{v:male,p:1.65,r:1.08}:{v:fem,p:1.9,r:1.08};
+    if(k=='robo')return {v:male||fem,p:.1,r:.8};
+    return {v:fem,p:1,r:1}}
+function setVoice(k){S.voice.kind=k;log('Voz do assistente: '+k);save();document.querySelectorAll('.vk button').forEach(b=>b.classList.toggle('on',b.dataset.k==k));voiceTest()}
+function logList(){const an=logAnim;logAnim=0;const L=logAll?S.log:S.log.slice(0,3);
+    return (L.map((l,i)=>`<div class="it ${an&&i>=3?'rv':''}" style="${an&&i>=3?'animation-delay:'+Math.min((i-3)*45,500)+'ms':''}"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`).join('')||'<p class="sub">Sem registros.</p>')
+        +(S.log.length>3?`<button class="btn sm alt" style="margin-top:10px;width:100%" onclick="logAll=!logAll;logAnim=logAll;render()">${logAll?'Mostrar menos':'Mostrar mais ('+(S.log.length-3)+')'}</button>`:'')}
 // ================= v7: animações fluidas e orbe do assistente =================
 const sheetH=()=>{if(!sheet)return '';const a=sheetAnim;sheetAnim=0;return a?sheet.replace('class="sheet"','class="sheet up"'):sheet};
 function vpScroll(){const m=$('#vpm');if(m)m.scrollTop=m.scrollHeight}
