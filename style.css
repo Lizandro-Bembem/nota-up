@@ -123,3 +123,19 @@ nav button.on::after{content:'';position:absolute;left:18%;right:18%;bottom:-2px
 .vk button.on{background:var(--sage);border-color:var(--green);color:#393B35;transform:scale(1.04)}.vk button.on span{transform:scale(1.25) rotate(-8deg)}
 .vk button:active{transform:scale(.94)}
 .it.rv{animation:rise .45s cubic-bezier(.2,.8,.2,1) backwards}
+
+/* v9 */
+.vk{grid-template-columns:repeat(3,1fr)}.vk button{flex-direction:column;gap:4px;padding:12px 6px;font-size:13px}
+.lx{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s cubic-bezier(.2,.8,.2,1)}.lx.open{grid-template-rows:1fr}
+.lxi{overflow:hidden;min-height:0}
+.lxr{opacity:0;transform:translateY(-10px);transition:opacity .25s,transform .3s}
+.lx.open .lxr{opacity:1;transform:none;transition:opacity .4s calc(var(--i)*40ms + 100ms),transform .5s cubic-bezier(.2,.8,.2,1) calc(var(--i)*40ms + 100ms)}
+.btn.sm.lbtn{margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px}
+.lbtn svg{width:16px;height:16px;transition:transform .5s cubic-bezier(.3,1.5,.5,1)}.lbtn.open svg{transform:rotate(180deg)}
+.st2{display:flex;align-items:center;gap:8px}
+.spn{width:14px;height:14px;border-radius:50%;border:2px solid var(--sand);border-top-color:var(--green);animation:spin .7s linear infinite;flex:none}
+.chk{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--green);color:#fff;font-size:11px;flex:none;animation:chkp .55s cubic-bezier(.3,1.7,.5,1)}
+.chk.x{background:var(--bad);animation:shake .4s}
+@keyframes chkp{from{transform:scale(0) rotate(-120deg)}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.pop{animation:popin .55s cubic-bezier(.3,1.5,.5,1)}@keyframes popin{from{opacity:0;transform:scale(.9) translateY(6px)}}
