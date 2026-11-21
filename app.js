@@ -7,9 +7,9 @@ const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
      no corpo: Olá {{to_name}}, seu código para redefinir a senha do {{app_name}} é {{code}} (vale {{validade}}).
    - publicKey: Account → General → Public Key */
 const EMAILJS={serviceId:'',templateId:'',publicKey:''};
-let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},ai:{key:'',model:'gpt-4o-mini'},voice:{on:true,uri:'',rate:1},acts:[],rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
+let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},voice:{on:true,uri:'',rate:1},acts:[],rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
-S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);S.ai=Object.assign({key:'',model:'gpt-4o-mini',prov:'openai',ks:{},ms:{}},S.ai);S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);delete S.voice.kind;S.acts=Array.isArray(S.acts)?S.acts:[];
+S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);delete S.ai;S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);delete S.voice.kind;S.acts=Array.isArray(S.acts)?S.acts:[];
 let locked=!!(S.user&&S.sec.hash),lk={msg:'',busy:0,tried:0,pw:0,ac:null,rst:null};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -66,7 +66,7 @@ function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
  <div class="card" style="margin-top:12px"><label style="margin:0">Média para aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
- <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${aiCard()}${voiceCard()}
+ <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${voiceCard()}
  <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${logList()}</div>`}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
@@ -166,10 +166,9 @@ let hq=Promise.resolve();
 function handle(tx,typed){hq=hq.then(()=>handle1(tx,typed)).catch(e=>console.error(e));return hq}
 function localReply(tx){try{return voice(tx)}catch(e){console.error(e);return P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}}
 async function handle1(tx,typed){if(!vp)return;log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;vp.chips=null;
-    aiMut=0;if(S.ai.key&&!greetOnly(tx)){vp.think=1;vp.act='';vpaint();try{a=await aiReply(tx)}catch(e){console.warn(e);a=aiMut?P('Fiz o que você pediu, mas a conexão caiu antes de eu confirmar. Dá uma olhada na tela.','A ação foi executada, mas a conexão caiu antes da confirmação. Verifique na tela.'):localReply(tx);if(vp)vp.msgs.push({r:'n',t:'⚠ '+aiP().name+' indisponível: '+e.msg+(aiMut?'':' Respondi pelo modo local.')});if(!aiWarned[e.kind]){aiWarned[e.kind]=1;toast(e.msg)}log('Assistente IA indisponível: '+e.msg)}if(vp){vp.think=0;vp.act=''}}
-    else a=localReply(tx);if(a)say('j',a);if(vp){vp.chips=sugg(tx);vpaint()}}
+    a=localReply(tx);if(a)say('j',a);if(vp){vp.chips=sugg(tx);vpaint()}}
 function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}speak(t);const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
-function mic(){vpAnim=1;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;ttsUnlock();aiHist=[];const g=P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`);vp={msgs:[{r:'j',t:g}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();speak(g);if(SR)listen(SR)}
+function mic(){vpAnim=1;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;ttsUnlock();const g=P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`);vp={msgs:[{r:'j',t:g}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();speak(g);if(SR)listen(SR)}
 // reconhecimento de voz: UMA instância reaproveitada (recriar a cada frase travava o microfone)
 let running=false,lastEv=0,lastFin={t:'',at:0},rstTimer=null;
 let guardT=null,rFail=0;
@@ -352,115 +351,8 @@ async function secSave(){const has=!!S.sec.hash,em=$('#se').value.trim().toLower
 function bioOffer(next){if(!bioOK||S.sec.bio){next&&next();return}cb=next;
     openSheet(`<div style="text-align:center"><div class="fid" style="margin:4px auto 10px">${IC.face}</div><h2>Entrar com ${bioName}?</h2><p class="sub" style="margin-top:6px">Ao abrir o app, o ${bioName} é ativado automaticamente. Se não reconhecer, você pode tentar de novo ou digitar a senha.</p></div><div class="row" style="margin-top:18px"><button class="btn alt" onclick="const g=cb;closeSheet();g&&g()">Agora não</button><button class="btn" id="bioYes" onclick="const g=cb;bioEnroll().then(()=>{closeSheet();g&&g()})">Ativar</button></div>`)}
 
-// ================= v6: assistente com IA (OpenAI / ChatGPT) =================
-let aiHist=[],aiWarned={},aiJust=0;
-const AI_P={openai:{name:'ChatGPT',url:'https://platform.openai.com/api-keys',bill:'platform.openai.com → Billing',models:[['gpt-4o-mini','GPT-4o mini (rápido e barato)'],['gpt-4.1-mini','GPT-4.1 mini'],['gpt-4o','GPT-4o (mais caro)']]},
-    claude:{name:'Claude',url:'https://console.anthropic.com/settings/keys',bill:'console.anthropic.com → Plans & Billing',models:[['claude-haiku-5-5','Claude Haiku 5.5 (rápido e barato)'],['claude-sonnet-5-5','Claude Sonnet 5.5 (mais inteligente)']]}};
-const TOOL_LBL={criar_disciplina:'criando a matéria',excluir_disciplina:'excluindo a matéria',lancar_nota:'lançando a nota',remover_ultima_nota:'removendo a nota',agendar_tarefa:'agendando no calendário',excluir_tarefa:'removendo a tarefa',alterar_media_aprovacao:'ajustando a média',mudar_tema:'trocando o tema',abrir_tela:'abrindo a tela',simular_nota:'calculando o cenário'};
+// ================= assistente local (sem IA externa) =================
 const SCOPE=()=>P(`Opa, ${fn1()}, nesse assunto eu não entro! Tô aqui só pra te ajudar a organizar suas notas e atividades. Quer lançar uma nota ou ver o que tem pra essa semana?`,'Estou aqui apenas para ajudar a organizar suas notas e atividades. Posso registrar uma nota ou consultar suas pendências?');
-const DIAS=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-const r2=v=>v===null?null:Math.round(v*100)/100;
-function aiSys(){const data={hoje:today(),dia_da_semana:DIAS[new Date().getDay()],media_para_aprovacao:S.target,
-    disciplinas:S.discs.map(d=>({nome:d.name,media_final:r2(discAvg(d.id)),medias_por_unidade:[1,2,3].map(u=>r2(unitAvg(d.id,u))),situacao:need(d.id)})),
-    notas:S.grades.slice(-40).map(g=>({disciplina:dn(g.d),unidade:g.u,tipo:g.type,descricao:g.name,nota:g.s,valia:g.max,data:g.date})),
-    tarefas:S.tasks.map(t=>({id:t.id,disciplina:dn(t.d),tipo:t.type,descricao:t.title,entrega:t.date,dias_ate_entrega:daysTo(t.date),pontos:t.pts,nota_lancada:!!t.graded}))};
-    return `Você é ${S.user.nick}, o assistente do app NotaUp de ${S.user.name}. Responda sempre em português do Brasil.
-ESCOPO: você é uma IA completa e proativa para a vida acadêmica do usuário. Opere o app (disciplinas, notas, unidades, médias, tarefas, calendário, lembretes) e também analise o desempenho, explique as contas, simule cenários (use a ferramenta simular_nota), sugira prioridades e um plano de estudo curto com base nas notas e nos prazos, e motive com honestidade. Não resolva exercícios nem escreva trabalhos. Se o assunto fugir do universo escolar (receitas, política, notícias, programação etc.), recuse em uma frase e ofereça uma ação do app. Cumprimentos e agradecimentos: uma frase.
-AÇÕES: para alterar dados use SEMPRE as ferramentas; nunca diga que fez algo sem chamar a ferramenta. Se faltar algo essencial (disciplina, nota obtida, data), pergunte. Antes de excluir uma disciplina, peça confirmação. Unidade padrão: 1. Valor padrão: 10 (ou os pontos da tarefa correspondente). Datas no formato AAAA-MM-DD, calculadas a partir de hoje.
-ESTILO: ${S.tone=='formal'?'formal, educado e objetivo':'descontraído, como um amigo, chamando o usuário de '+fn1()}. Respostas naturais e curtas (1 a 3 frases), sem markdown, sem listas e sem emojis, porque o texto é lido em voz alta. Use vírgula decimal (ex.: 7,5). Seja proativo: depois de executar uma ação, diga o efeito na média e sugira o próximo passo. Calcule sempre com os dados do app, nunca invente números.
-REGRAS DE NOTA: média da unidade = soma das notas ÷ soma dos valores × 10; média final = média das unidades lançadas; aprovado com média final ≥ ${S.target}.
-DADOS ATUAIS DO APP (JSON): ${JSON.stringify(data)}`}
-const TT=(name,description,props,req)=>({type:'function',function:{name,description,parameters:{type:'object',properties:props,required:req||[]}}});
-const TYPE_E={type:'string',enum:TYPES};
-const TOOLS=[
-    TT('criar_disciplina','Cadastra uma nova disciplina (matéria).',{nome:{type:'string'}},['nome']),
-    TT('excluir_disciplina','Exclui uma disciplina com todas as notas e tarefas dela. Só use depois que o usuário confirmar, e então passe confirmado=true.',{disciplina:{type:'string'},confirmado:{type:'boolean',description:'true somente se o usuário confirmou a exclusão'}},['disciplina','confirmado']),
-    TT('lancar_nota','Registra uma nota obtida pelo usuário.',{disciplina:{type:'string'},nota:{type:'number',description:'nota obtida'},valor:{type:'number',description:'quanto a avaliação valia (padrão 10)'},unidade:{type:'integer',enum:[1,2,3]},tipo:TYPE_E,descricao:{type:'string'}},['disciplina','nota']),
-    TT('remover_ultima_nota','Remove a última nota lançada.',{}),
-    TT('simular_nota','Simula uma nota hipotética SEM salvar e devolve como ficariam as médias.',{disciplina:{type:'string'},nota:{type:'number'},valor:{type:'number',description:'quanto valeria (padrão 10)'},unidade:{type:'integer',enum:[1,2,3]}},['disciplina','nota']),
-    TT('agendar_tarefa','Agenda prova, trabalho, atividade, teste ou projeto no calendário.',{disciplina:{type:'string',description:'nome da disciplina, ou "todas" para projeto válido para todas as matérias'},tipo:TYPE_E,data:{type:'string',description:'AAAA-MM-DD'},pontos:{type:'number',description:'quanto vale (padrão 10)'},descricao:{type:'string'}},['disciplina','tipo','data']),
-    TT('excluir_tarefa','Exclui uma tarefa do calendário pelo id.',{id:{type:'string'}},['id']),
-    TT('alterar_media_aprovacao','Muda a média necessária para aprovação.',{media:{type:'number'}},['media']),
-    TT('mudar_tema','Muda o tema do app.',{tema:{type:'string',enum:['claro','escuro']}},['tema']),
-    TT('abrir_tela','Abre uma tela do app.',{tela:{type:'string',enum:['inicio','historico','calendario','atividades','configuracoes']}},['tela'])];
-function discBy(n){if(!n)return null;const k=norm(String(n));return S.discs.find(d=>norm(d.name)==k)||findDisc(k)||null}
-function discOrNew(n){let d=discBy(n);if(!d&&n&&String(n).trim()&&!/^tod/.test(norm(String(n)))){d=addDisc(String(n).trim())}return d&&d.id?d:null}
-let aiMut=0;
-function aiTool(name,a){if(!['simular_nota','abrir_tela'].includes(name))aiMut=1;a=a||{};const nf=()=>({erro:'disciplina não encontrada',disciplinas_existentes:S.discs.map(x=>x.name)});
-    switch(name){
-        case 'criar_disciplina':{const n=cap(String(a.nome||'').trim());if(!n)return {erro:'nome vazio'};if(S.discs.some(x=>norm(x.name)==norm(n)))return {erro:'essa disciplina já existe'};addDisc(n);return {ok:true,disciplina:n}}
-        case 'excluir_disciplina':{const d=discBy(a.disciplina);if(!d)return nf();if(a.confirmado!==true)return {erro:'peça confirmação ao usuário antes de excluir'};delDisc(d.id);return {ok:true,excluida:d.name}}
-        case 'lancar_nota':{const d=discOrNew(a.disciplina);if(!d)return nf();const T=TYPES.includes(a.tipo)?a.tipo:'Atividade',s=+a.nota,u=[1,2,3].includes(+a.unidade)?+a.unidade:1,
-            tk=S.tasks.find(x=>x.d==d.id&&!x.graded&&norm(x.type)==norm(T)),max=+a.valor>0?+a.valor:tk?tk.pts:10;
-            if(!(s>=0))return {erro:'nota inválida'};if(s>max)return {erro:`a nota ${s} é maior que o valor ${max}`};if(tk)tk.graded=true;
-            S.grades.push({id:uid(),d:d.id,u,type:T,name:a.descricao?cap(String(a.descricao)):tk?tk.title:T+' de '+d.name,max,s,date:today()});
-            log(`Nota lançada pelo assistente: ${T} de ${d.name} (${u}ª unidade) – ${f(s)}/${f(max)}`);save();render();
-            return {ok:true,media_unidade:r2(unitAvg(d.id,u)),media_disciplina:r2(discAvg(d.id)),situacao:need(d.id)}}
-        case 'simular_nota':{const d=discBy(a.disciplina);if(!d)return nf();const u=[1,2,3].includes(+a.unidade)?+a.unidade:1,mx=+a.valor>0?+a.valor:10,v=+a.nota;if(!(v>=0&&v<=mx))return {erro:'nota inválida'};
-            S.grades.push({id:'sim',d:d.id,u,type:'x',name:'x',max:mx,s:v,date:today()});const r={simulacao:true,nao_salvo:true,media_unidade:r2(unitAvg(d.id,u)),media_disciplina:r2(discAvg(d.id)),situacao:need(d.id)};S.grades.pop();return r}
-        case 'remover_ultima_nota':{const g=S.grades.pop();if(!g)return {erro:'não há notas'};log('Nota removida pelo assistente: '+g.name);save();render();return {ok:true,removida:g.name}}
-        case 'agendar_tarefa':{const all=/^tod/.test(norm(String(a.disciplina||''))),d=all?null:discOrNew(a.disciplina);if(!all&&!d)return nf();
-            if(!/^\d{4}-\d{2}-\d{2}$/.test(a.data||'')||isNaN(new Date(a.data+'T12:00')))return {erro:'data inválida, use AAAA-MM-DD'};
-            const T=TYPES.includes(a.tipo)?a.tipo:'Atividade',pts=+a.pontos>0?+a.pontos:10,did=all?'all':d.id;
-            S.tasks.push({id:uid(),d:did,type:T,title:a.descricao?cap(String(a.descricao)):T+' de '+dn(did),date:a.data,pts,graded:false});
-            log(`Tarefa criada pelo assistente: ${T} de ${dn(did)} para ${dfmt(a.data)} (${f(pts)} pts)`);save();render();remind();return {ok:true,entrega:dfmt(a.data)}}
-        case 'excluir_tarefa':{const t=S.tasks.find(x=>x.id==a.id);if(!t)return {erro:'tarefa não encontrada'};S.tasks=S.tasks.filter(x=>x.id!=a.id);log('Tarefa excluída pelo assistente: '+t.title);save();render();return {ok:true}}
-        case 'alterar_media_aprovacao':{const v=+a.media;if(!(v>0&&v<=10))return {erro:'use um valor entre 0 e 10'};S.target=v;log('Média de aprovação alterada para '+v+' (assistente)');save();render();return {ok:true}}
-        case 'mudar_tema':setTheme(a.tema=='escuro'?'dark':'light');return {ok:true};
-        case 'abrir_tela':{const k={inicio:'home',historico:'hist',calendario:'cal',atividades:'ativ',configuracoes:'cfg'}[a.tela];if(!k)return {erro:'tela inválida'};go(k);return {ok:true}}}
-    return {erro:'ferramenta desconhecida'}}
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function aiErr(kind,msg){const e=new Error(msg);e.kind=kind;e.msg=msg;return e}
-const aiP=()=>AI_P[S.ai.prov]||AI_P.openai;
-function aiToClaude(ms){const out=[];for(const m of ms.slice(1)){
-    if(m.role=='tool'){const b={type:'tool_result',tool_use_id:m.tool_call_id,content:m.content},l=out[out.length-1];if(l&&l.role=='user'&&Array.isArray(l.content)&&l.content[0].type=='tool_result')l.content.push(b);else out.push({role:'user',content:[b]})}
-    else if(m.role=='assistant'&&m.tool_calls){const c=[];if(m.content)c.push({type:'text',text:m.content});m.tool_calls.forEach(t=>{let i={};try{i=JSON.parse(t.function.arguments||'{}')}catch(e){}c.push({type:'tool_use',id:t.id,name:t.function.name,input:i})});out.push({role:'assistant',content:c})}
-    else out.push({role:m.role,content:Array.isArray(m.content)?m.content.map(p=>p.type=='image_url'?{type:'image',source:{type:'base64',media_type:'image/jpeg',data:String(p.image_url.url).split(',')[1]}}:p):m.content})}return out}
-async function aiCall(messages,opt){opt=opt||{};const cl=S.ai.prov=='claude',P0=aiP(),key=S.ai.key.trim();
-    if(!key)throw aiErr('auth','Nenhuma chave conectada. Conecte em Configurações.');if(/[^\x21-\x7e]/.test(key))throw aiErr('auth','A chave tem caracteres inválidos (espaço, acento ou quebra de linha). Copie de novo e cole sem nada extra.');
-    for(let a=0;a<3;a++){let r,ac=window.AbortController?new AbortController():null,tm=ac?setTimeout(()=>ac.abort(),opt.timeout||45000):0;
-        try{const url=cl?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/chat/completions',
-            hd=cl?{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}:{'Content-Type':'application/json',Authorization:'Bearer '+key},
-            tools=opt.noTools?{}:{tools:cl?TOOLS.map(t=>({name:t.function.name,description:t.function.description,input_schema:t.function.parameters})):TOOLS},
-            body=cl?Object.assign({model:S.ai.model,max_tokens:opt.max||600,system:messages[0].content,messages:aiToClaude(messages)},tools):Object.assign({model:S.ai.model||'gpt-4o-mini',messages,max_completion_tokens:opt.max||600},tools);
-            r=await fetch(url,{method:'POST',headers:hd,body:JSON.stringify(body),signal:ac?ac.signal:undefined})}
-        catch(e){clearTimeout(tm);console.warn('aiCall',e);const dt=e&&(e.name||'erro')+(e&&e.message?': '+String(e.message).slice(0,80):''),hint=location.protocol=='file:'?' Abra o app por um endereço https, não pelo arquivo no aparelho.':navigator.onLine===false?' O aparelho diz que está sem internet.':' Pode ser bloqueio de rede, VPN, DNS privado ou bloqueador de anúncios.';throw aiErr('net',e&&e.name=='AbortError'?P0.name+' demorou demais para responder. Tente de novo.':'Não consegui falar com o '+P0.name+' ('+dt+').'+hint)}
-        clearTimeout(tm);
-        if(r.ok){const j=await r.json();if(!cl)return j.choices[0].message;const tx=j.content.filter(b=>b.type=='text').map(b=>b.text).join(' '),tc=j.content.filter(b=>b.type=='tool_use').map(b=>({id:b.id,type:'function',function:{name:b.name,arguments:JSON.stringify(b.input||{})}}));return {content:tx,tool_calls:tc}}
-        let j={};try{j=await r.json()}catch(e){}const er=j.error||{},msg=String(er.message||''),code=String(er.code||er.type||''),quota=/insufficient_quota|billing/.test(code)||/quota|billing|credit balance/i.test(msg);
-        if((r.status==429||r.status==503||r.status==529)&&!quota&&a<2){await sleep((+r.headers.get('retry-after')||2*(a+1))*1000);continue}
-        if(r.status==401)throw aiErr('auth','Chave inválida ou revogada. Gere uma nova em '+P0.url.replace('https://','')+' e conecte de novo em Configurações.');
-        if(quota)throw aiErr('quota','Sua conta da API do '+P0.name+' está sem créditos. A assinatura (Plus/Pro/Max) é separada da API: adicione créditos em '+P0.bill+'.');
-        if(r.status==429)throw aiErr('rate','Muitas mensagens seguidas. Tente de novo em alguns segundos.');
-        if(r.status==404||/model_not_found|not_found/.test(code))throw aiErr('model','O modelo '+S.ai.model+' não está liberado para sua chave. Escolha outro em Configurações.');
-        if(r.status==403)throw aiErr('perm','Sua chave não tem permissão para este modelo ou projeto.');
-        throw aiErr('other','O '+P0.name+' respondeu com erro '+r.status+(msg?': '+msg.slice(0,120):'')+'.')}}
-async function aiReply(tx){aiHist.push({role:'user',content:tx});aiHist=aiHist.slice(-20);while(aiHist.length&&aiHist[0].role!='user')aiHist.shift();const msgs=[{role:'system',content:aiSys()},...aiHist];
-    try{for(let i=0;i<6;i++){const m=await aiCall(msgs),calls=m.tool_calls||[];
-        if(!calls.length){const t=(m.content||'').trim()||P('Feito!','Concluído.');aiHist.push({role:'assistant',content:t});return t}
-        msgs.push({role:'assistant',content:m.content||null,tool_calls:calls});
-        for(const c of calls){if(vp){vp.act=(TOOL_LBL[c.function.name]||'executando')+'…';vpaint()}let r;try{r=aiTool(c.function.name,JSON.parse(c.function.arguments||'{}'))}catch(e){r={erro:String(e.message||e)}}msgs.push({role:'tool',tool_call_id:c.id,content:JSON.stringify(r)})}
-        if(vp){vp.act='Pensando…';vpaint()}msgs[0]={role:'system',content:aiSys()}}
-        return P('Pronto!','Concluído.')}
-    catch(e){aiHist.pop();throw e}}
-function aiCard(){const jj=aiJust;aiJust=0;const k=S.ai.key,p=aiP(),cl=S.ai.prov=='claude';return `<div class="card" style="margin-top:12px"><h2>Assistente com IA</h2>
- <div class="seg two ${cl?'r':''}" id="provSeg" style="margin-top:10px;width:fit-content"><i class="th"></i><button class="${cl?'':'on'}" onclick="aiProv('openai')">ChatGPT</button><button class="${cl?'on':''}" onclick="aiProv('claude')">Claude</button></div>
- ${k?`<p class="sub ${jj?'pop':''}" style="margin-top:10px">Conectado ao ${p.name} · chave ${esc(k.slice(0,6)+'…'+k.slice(-4))}</p>`:`<p class="sub" style="margin-top:10px">Sem chave, o assistente usa o modo local (comandos prontos).</p>
- <button class="btn" style="margin-top:10px" onclick="aiGetKey()">Abrir a página da chave do ${p.name}</button><p class="sub" style="margin-top:6px">Crie e copie a chave lá. Ao voltar para o app, ele cola e conecta sozinho.</p>
- <label>Ou cole a chave aqui</label><div class="row"><input id="aik" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${cl?'sk-ant-...':'sk-...'}" style="margin-top:0"><button class="btn sm alt" onclick="aiPaste()">Colar</button></div>`}
- <label>Modelo</label><select onchange="S.ai.model=this.value;S.ai.ms[S.ai.prov]=this.value;save()">${p.models.map(([v,l])=>`<option value="${v}" ${S.ai.model==v?'selected':''}>${l}</option>`).join('')}</select>
- <div class="row" style="margin-top:12px">${k?`<button class="btn sm alt" onclick="aiTest()">Testar conexão</button><button class="btn sm alt" onclick="aiGetKey()">Ver chaves</button><button class="btn sm alt" onclick="aiOff()">Desconectar</button>`:`<button class="btn sm" onclick="aiOn()">Conectar</button>`}</div>
- <p class="sub" id="ais" style="margin-top:8px"></p>
- <p class="sub" style="margin-top:4px">A assinatura (ChatGPT Plus/Pro ou Claude Pro/Max) é separada da API. Créditos: ${p.bill}. A chave fica salva só neste aparelho.</p>
- <label>Estilo de conversa</label><div class="seg two ${S.tone=='formal'?'r':''}" id="toneSeg" style="margin-top:6px;width:fit-content"><i class="th"></i><button class="${S.tone!='formal'?'on':''}" onclick="setTone('amigo')">Amigo</button><button class="${S.tone=='formal'?'on':''}" onclick="setTone('formal')">Formal</button></div></div>`}
-function aiProv(v,now){if(S.ai.prov==v)return;S.ai.ks[S.ai.prov]=S.ai.key;S.ai.ms[S.ai.prov]=S.ai.model;S.ai.prov=v;S.ai.key=S.ai.ks[v]||'';S.ai.model=S.ai.ms[v]||AI_P[v].models[0][0];aiHist=[];aiWarned={};log('Assistente: '+AI_P[v].name);save();if(now)render();else{segSet('provSeg',v=='claude');setTimeout(render,400)}}
-function aiGetKey(){aiWait=1;const u=aiP().url,w=window.open(u,'_blank');if(w){try{w.opener=null}catch(e){}}else location.href=u;toast('Abri o site do '+aiP().name+'. Crie e copie a chave: ao voltar eu conecto sozinho.')}
-async function aiPaste(q){let t='';try{t=((await navigator.clipboard.readText())||'').trim()}catch(e){if(!q)toast('Não consegui ler a área de transferência. Cole a chave no campo.');return}
-    if(/^sk-[\w-]{20,}$/.test(t)){toast('Chave encontrada! Conectando…');return aiOn(t)}if(!q)toast('Copie a chave primeiro e toque em Colar.')}
-async function aiTest(){const st=(t,k)=>{const e=$('#ais');if(e){e.className='sub st2 '+(k||'');e.innerHTML=(k=='ld'?'<span class="spn"></span>':k=='ok'?'<span class="chk">✓</span>':k=='er'?'<span class="chk x">✕</span>':'')+esc(t)}};st('Testando conexão…','ld');
-    try{await aiCall([{role:'system',content:'Seja breve.'},{role:'user',content:'Responda apenas: ok'}],{noTools:1,max:16});st('Conexão funcionando.','ok');aiWarned={};return true}catch(e){st(e.msg,'er');return false}}
-async function aiOn(v){v=String(v||(($('#aik')||{}).value)||'').trim();const pv=/^sk-ant-/.test(v)?'claude':/^sk-/.test(v)?'openai':'';if(!pv)return toast('Cole a chave da API (começa com sk-).');if(pv!=S.ai.prov)aiProv(pv,1);S.ai.key=v;S.ai.ks[pv]=v;aiHist=[];aiWarned={};aiJust=1;save();render();const ok=await aiTest();log('Assistente IA ('+aiP().name+') conectado'+(ok?'':' (o teste falhou)'))}
-function aiOff(){S.ai.ks[S.ai.prov]='';S.ai.key='';aiHist=[];log('Assistente IA desconectado');save();render()}
 
 // ================= v6: voz do assistente (fala as respostas) =================
 let speaking=false,ttsOK=false,spkT=null,spkGen=0;
@@ -488,6 +380,7 @@ function ttsStop(){spkGen++;clearTimeout(spkT);speaking=false;try{const s=TTS();
 function voiceOpts(){const L=voices(),cur=pickVoice();return L.length?L.map(v=>`<option value="${esc(v.voiceURI)}" ${cur&&cur.voiceURI==v.voiceURI?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join(''):'<option value="">Voz padrão do aparelho</option>'}
 function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2>${TTS()?`
  <div class="row sp" style="margin-top:12px"><span style="font-weight:600">Falar as respostas</span><button class="sw ${S.voice.on?'on':''}" id="ttsSw" role="switch" aria-checked="${!!S.voice.on}" aria-label="Falar as respostas" onclick="S.voice.on=!S.voice.on;log('Voz do assistente '+(S.voice.on?'ligada':'desligada'));save();if(!S.voice.on)ttsStop();render()"></button></div>
+ <label>Estilo de conversa</label><div class=\"seg two ${S.tone=='formal'?'r':''}\" id=\"toneSeg\" style=\"margin-top:6px;width:fit-content\"><i class=\"th\"></i><button class=\"${S.tone!='formal'?'on':''}\" onclick=\"setTone('amigo')\">Amigo</button><button class=\"${S.tone=='formal'?'on':''}\" onclick=\"setTone('formal')\">Formal</button></div>
  <label>Velocidade</label><input type="range" min="0.7" max="1.5" step="0.1" value="${S.voice.rate}" onchange="S.voice.rate=+this.value;save();voiceTest()">
  <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
 function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
@@ -508,41 +401,37 @@ function countUp(){document.querySelectorAll('[data-n]').forEach(el=>{const to=+
 const orbSt=()=>!vp?'':vp.think?'think':speaking?'talk':(keep&&running)?'listen':'';
 const stHtml=()=>vp?`<span class="wave"><i></i><i></i><i></i><i></i></span>${esc(vp.think?(vp.act||'Pensando…'):vp.st)}`:'';
 function sugg(tx){const L=[],late=S.tasks.some(t=>!t.graded&&daysTo(t.date)<0);if(late)L.push('Lançar nota pendente');if(overall()!==null){L.push('Quanto falta para passar?');L.push('Como estou indo?')}else L.push(S.discs.length?'Adicionar uma nota':'Criar uma matéria');L.push('O que temos para hoje?');return L.filter(x=>norm(x)!=norm(tx||'')).slice(0,3)}
-// ao voltar do site da chave, cola e conecta sozinho
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&aiWait&&!S.ai.key){aiWait=0;setTimeout(()=>aiPaste(1),250)}});
 
-// ================= Atividades: foto + texto -> resposta da conta vinculada (ChatGPT ou Claude) =================
-let actDraft='',actImg='',actThumb='',actBusy=0,actErr='';
-const actMd=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^#{1,4}\s*/gm,'');
-function actList(){if(!S.acts.length)return '';return `<div class="card" style="margin-top:12px"><h2>Respostas anteriores</h2>${S.acts.map(a=>`<div class="it"><div class="sub">${new Date(a.t).toLocaleString('pt-BR')} · ${esc(a.prov)}</div>${a.th?`<img class="athumb" src="${a.th}" alt="Foto enviada">`:''}${a.q?`<p style="margin-top:6px"><b>${esc(a.q)}</b></p>`:''}<div class="ans">${actMd(a.a)}</div><div class="row" style="margin-top:8px"><button class="btn sm alt" onclick="actSay('${a.id}')">🔊 Ouvir</button><button class="btn sm alt" onclick="ask('Apagar esta resposta?',()=>actDel('${a.id}'),'Apagar')">Apagar</button></div></div>`).join('')}</div>`}
-function ativ(){const k=S.ai.key,p=aiP();
-    const head=`<h1>Atividades</h1><p class="sub">Tire uma foto ou escreva a atividade e receba a resposta${k?' do '+p.name:''} aqui dentro do app.</p>`;
-    if(!k)return head+`<div class="card" style="margin-top:14px"><h2>Conecte o ChatGPT ou o Claude</h2><p class="sub" style="margin-top:6px">Para responder as atividades, vincule sua conta em Configurações → Assistente com IA.</p><button class="btn" style="margin-top:12px" onclick="go('cfg')">Ir para Configurações</button></div>`+actList();
-    return head+`<div class="card" style="margin-top:14px"><div class="row sp"><b>Respondendo com ${esc(p.name)}</b><span class="sub">${esc(S.ai.model)}</span></div>
- <label>Qual é a atividade?</label><textarea id="actT" rows="4" placeholder="Digite o enunciado ou a pergunta…" oninput="actDraft=this.value">${esc(actDraft)}</textarea>
+// ================= Atividades: foto/texto -> abre a pesquisa do Google já pronta =================
+let actDraft='',actImg='',actThumb='',actBusy='',actErr='',ocrP=null;
+const gUrl=q=>'https://www.google.com/search?q='+encodeURIComponent(String(q).replace(/\s+/g,' ').trim().slice(0,300));
+const draw=()=>{if(view=='ativ'&&!locked&&S.user)render()};
+function openG(url){let w=null;try{w=window.open(url,'_blank')}catch(e){}if(w){try{w.opener=null}catch(e){}}return !!w}
+function actList(){if(!S.acts.length)return '';return `<div class="card" style="margin-top:12px"><h2>Pesquisas anteriores</h2>${S.acts.map(a=>`<div class="it"><div class="sub">${new Date(a.t).toLocaleString('pt-BR')}</div>${a.th?`<img class="athumb" src="${a.th}" alt="Foto enviada">`:''}<p style="margin-top:6px"><b>${esc(a.q)}</b></p><div class="row" style="margin-top:8px;flex-wrap:wrap"><a class="btn sm" style="text-decoration:none;text-align:center" href="${esc(a.g||gUrl(a.q))}" target="_blank" rel="noopener">🔎 Abrir no Google</a><button class="btn sm alt" onclick="ask('Apagar esta pesquisa?',()=>actDel('${a.id}'),'Apagar')">Apagar</button></div></div>`).join('')}</div>`}
+function ativ(){const last=S.acts[0];return `<h1>Atividades</h1><p class="sub">Tire uma foto, escolha da galeria ou cole a atividade. O app abre o Google já pesquisando.</p><div class="card" style="margin-top:14px">
+ <label style="margin-top:0">Atividade ou pergunta</label><textarea id="actT" rows="4" placeholder="Cole ou digite a atividade…" oninput="actDraft=this.value">${esc(actDraft)}</textarea>
  ${actImg?`<div class="actimg"><img src="${actImg}" alt="Foto da atividade"><button class="btn sm alt" onclick="actClear()">Remover foto</button></div>`:''}
  <div class="row" style="margin-top:10px"><button class="btn sm" style="flex:1" onclick="$('#actCam').click()">📷 Tirar foto</button><button class="btn sm alt" style="flex:1" onclick="$('#actGal').click()">🖼 Galeria</button></div>
  <input id="actCam" type="file" accept="image/*" capture="environment" style="display:none" onchange="actPick(this)"><input id="actGal" type="file" accept="image/*" style="display:none" onchange="actPick(this)">
  ${actErr?`<p class="sub warn" style="margin-top:8px">${esc(actErr)}</p>`:''}
- <button class="btn" id="actGo" style="margin-top:12px" ${actBusy?'disabled':''} onclick="actSend()">${actBusy?'Analisando…':'Perguntar ao '+esc(p.name)}</button></div>`+actList()}
+ ${actErr&&last&&/Google/.test(actErr)?`<a class="btn" style="display:block;margin-top:10px;text-decoration:none;text-align:center" href="${esc(last.g)}" target="_blank" rel="noopener">🔎 Abrir no Google</a>`:''}
+ <button class="btn" id="actGo" style="margin-top:12px" ${actBusy?'disabled':''} onclick="actSend()">${actBusy?esc(actBusy):'🔎 Pesquisar no Google'}</button></div>`+actList()}
 function actClear(){actImg='';actThumb='';render()}
 function actPick(inp){const fl=inp.files&&inp.files[0];inp.value='';if(!fl)return;const r=new FileReader();
     r.onerror=()=>toast('Não consegui ler essa foto.');
     r.onload=()=>{const im=new Image();im.onerror=()=>toast('Não consegui abrir essa imagem. Tente JPG ou PNG.');
         im.onload=()=>{const sz=(max,q)=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
-            actImg=sz(1280,.82);actThumb=sz(140,.55);actErr='';if(view=='ativ')render()};im.src=r.result};r.readAsDataURL(fl)}
-async function actSend(){if(actBusy)return;const txt=(actDraft||'').trim();if(!S.ai.key)return toast('Conecte o ChatGPT ou o Claude em Configurações.');
-    if(!txt&&!actImg)return toast('Escreva a atividade ou tire uma foto.');
-    actBusy=1;actErr='';if(view=='ativ')render();const p=aiP(),img=actImg,th=actThumb;
-    const sys=`Você é o tutor de ${S.user.name} dentro do app NotaUp. O aluno envia uma atividade escolar (texto e/ou foto). Responda em português do Brasil: dê a resposta e explique o passo a passo de forma clara e objetiva, para ele aprender. Se a foto estiver ilegível ou cortada, diga o que não deu para ler e peça outra foto. Evite markdown pesado (sem tabelas); pode usar listas simples e **negrito**.`;
-    const parts=[{type:'text',text:txt||'Resolva e explique a atividade que está na imagem.'}];if(img)parts.push({type:'image_url',image_url:{url:img}});
-    try{const m=await aiCall([{role:'system',content:sys},{role:'user',content:img?parts:parts[0].text}],{noTools:1,max:1800,timeout:90000}),a=String((m&&m.content)||'').trim();
-        if(!a)throw aiErr('other','O '+p.name+' não devolveu resposta. Tente de novo.');
-        S.acts.unshift({id:uid(),t:Date.now(),prov:p.name,q:txt.slice(0,300),th:img?th:'',a});S.acts=S.acts.slice(0,20);log('Atividade respondida por '+p.name+(img?' (com foto)':''));save();actDraft='';actImg='';actThumb='';actBusy=0;
-        if(view=='ativ')render();else toast('Resposta pronta na aba Atividades.')}
-    catch(e){actBusy=0;actErr=e.msg||String(e.message||e);if(view=='ativ')render();toast(actErr)}}
-function actSay(id){const a=S.acts.find(x=>x.id==id);if(!a)return;ttsUnlock();speak(a.a.replace(/\*\*/g,''),1)}
-function actDel(id){S.acts=S.acts.filter(x=>x.id!=id);log('Resposta de atividade apagada');save();render()}
+            actImg=sz(1600,.85);actThumb=sz(140,.55);actErr='';if(view=='ativ')render();if(!(actDraft||'').trim())actSend()};im.src=r.result};r.readAsDataURL(fl)}
+function loadOcr(){if(window.Tesseract)return Promise.resolve();if(ocrP)return ocrP;ocrP=new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';sc.onload=ok;sc.onerror=()=>{ocrP=null;no(new Error('Não consegui carregar o leitor de fotos. Verifique a internet ou escreva a atividade.'))};document.head.appendChild(sc)});return ocrP}
+async function ocrRead(img){await loadOcr();const w=await Tesseract.createWorker('por');try{const r=await w.recognize(img);return String((r.data&&r.data.text)||'').replace(/\s+/g,' ').trim()}finally{try{await w.terminate()}catch(e){}}}
+function actSave(txt,th){const e={id:uid(),t:Date.now(),q:txt.slice(0,300),th:th||'',g:gUrl(txt)};S.acts.unshift(e);S.acts=S.acts.slice(0,20);log('Atividade pesquisada no Google'+(th?' (com foto)':''));save();return e}
+async function actSend(){if(actBusy)return;let txt=(actDraft||'').trim();const img=actImg,th=actThumb;
+    if(!txt&&!img)return toast('Escreva ou cole a atividade, ou tire uma foto.');
+    if(txt){const e=actSave(txt,'');const ok=openG(e.g);actErr=ok?'':'O navegador bloqueou a abertura do Google. Toque em “Abrir no Google” abaixo.';draw();return}
+    actErr='';actBusy='Lendo a foto…';draw();
+    try{txt=await ocrRead(img);if(!txt)throw new Error('Não consegui ler texto nessa foto. Tente com mais luz e a folha reta, ou escreva a atividade.');
+        actDraft=txt;const e=actSave(txt,th);actImg='';actThumb='';actBusy='';const ok=openG(e.g);actErr=ok?'':'Pronto! Toque em “Abrir no Google” para ver a resposta.';draw()}
+    catch(e){actBusy='';actErr=String(e&&e.message||e);draw();toast(actErr)}}
+function actDel(id){S.acts=S.acts.filter(x=>x.id!=id);log('Pesquisa de atividade apagada');save();render()}
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-function greetOnly(tx){const t=norm(String(tx)).replace(new RegExp('\\b'+rx(norm(S.user.nick))+'\\b','g'),' ').replace(/\s+/g,' ').trim();return t===''||/^(?:(?:oi|ola|e ai|opa|ei|alo|salve|hey|fala)\s+)?(?:bom dia|boa tarde|boa noite|oi|ola|e ai|opa|ei|alo|salve|hey|fala)[\s,.!?]*$/.test(t)}
-render();remind();setInterval(remind,60000);
+save();render();remind();setInterval(remind,60000);
