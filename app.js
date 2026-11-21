@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s),app=$('#app');
-const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',face:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M9 9v1.5M15 9v1.5M12 9v4h-1M9 16.5a4.5 4.5 0 0 0 6 0"/></svg>'};
+const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11 12 3l9 8v10H3z"/></svg>',hist:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>',cal:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',cfg:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>',mic:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',ativ:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12l4 4v12H4z"/><path d="M16 4v4h4M8 13h8M8 17h5"/></svg>',face:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3M9 9v1.5M15 9v1.5M12 9v4h-1M9 16.5a4.5 4.5 0 0 0 6 0"/></svg>'};
 /* ===== EmailJS (recuperação de senha) =====
    Preencha com os dados do seu painel em https://dashboard.emailjs.com
    - serviceId: Email Services → Service ID
@@ -7,9 +7,9 @@ const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
      no corpo: Olá {{to_name}}, seu código para redefinir a senha do {{app_name}} é {{code}} (vale {{validade}}).
    - publicKey: Account → General → Public Key */
 const EMAILJS={serviceId:'',templateId:'',publicKey:''};
-let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},ai:{key:'',model:'gpt-4o-mini'},voice:{on:true,uri:'',rate:1},rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
+let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},ai:{key:'',model:'gpt-4o-mini'},voice:{on:true,uri:'',rate:1},acts:[],rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
-S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);S.ai=Object.assign({key:'',model:'gpt-4o-mini',prov:'openai',ks:{},ms:{}},S.ai);S.voice=Object.assign({on:true,uri:'',rate:1,kind:'mulher'},S.voice);if(S.voice.kind=='menino')S.voice.kind='mulher';
+S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);S.ai=Object.assign({key:'',model:'gpt-4o-mini',prov:'openai',ks:{},ms:{}},S.ai);S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);delete S.voice.kind;S.acts=Array.isArray(S.acts)?S.acts:[];
 let locked=!!(S.user&&S.sec.hash),lk={msg:'',busy:0,tried:0,pw:0,ac:null,rst:null};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -17,7 +17,7 @@ const f=n=>(Math.round(n*10)/10).toFixed(1).replace('.',','),ymd=d=>d.getFullYea
 const dfmt=d=>d.split('-').reverse().join('/');
 const log=m=>{S.log.unshift({t:Date.now(),m});S.log=S.log.slice(0,300);save()};
 const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;app.appendChild(t);setTimeout(()=>t.classList.add('out'),3450);setTimeout(()=>t.remove(),3800)}
+let curToast=null;function toast(m){if(curToast)curToast.remove();const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=m;app.appendChild(t);curToast=t;setTimeout(()=>t.classList.add('out'),3450);setTimeout(()=>{t.remove();if(curToast===t)curToast=null},3800)}
 // cálculo
 function unitAvg(d,u){const g=S.grades.filter(x=>x.d===d&&x.u===u);if(!g.length)return null;const m=g.reduce((a,x)=>a+x.max,0);return m?g.reduce((a,x)=>a+x.s,0)/m*10:null}
 function discAvg(d){const a=[1,2,3].map(u=>unitAvg(d,u)).filter(x=>x!==null);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
@@ -27,14 +27,14 @@ function need(d){const u=[1,2,3].map(i=>unitAvg(d,i)),got=u.filter(x=>x!==null),
     return req<=0?'Média já garantida ✓':req/left>10?'Não dá mais para atingir a média só com as unidades restantes':'Precisa de '+f(req/left)+' em cada unidade restante'}
 const col=v=>v===null?'':v>=S.target?'ok':'warn';
 // views
-let pgAnim=1,sheetAnim=0,vpAnim=0,aiWait=0,pgDir=0,goT=0,logAll=false,logAnim=0;const TABS=['home','hist','cal','cfg'];
+let pgAnim=1,sheetAnim=0,vpAnim=0,aiWait=0,pgDir=0,goT=0,logAll=false,logAnim=0;const TABS=['home','hist','cal','ativ','cfg'];
 const go=v=>{if(goT)return;const m=$('main'),d=TABS.indexOf(v)>=TABS.indexOf(view)?1:-1;
     if(v==view&&!sheet)return;
     if(v==view||!m||locked||!S.user||vp&&0){view=v;sheet=null;pgAnim=1;pgDir=0;return render()}
     m.style.setProperty('--dx',(-d*34)+'px');m.classList.add('leave');
     goT=setTimeout(()=>{goT=0;view=v;sheet=null;pgAnim=1;pgDir=d;render()},180)};
 function avatar(){return `<div class="av">${S.user.photo?`<img src="${S.user.photo}" alt="">`:esc(S.user.name[0]||'?').toUpperCase()}</div>`}
-function ob(){app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Suas Notas, Sua Evolução</h1><p class="sub">Crie seu perfil para começar.</p>
+function ob(){setTimeout(()=>{if(curToast&&!curToast.isConnected)app.appendChild(curToast)},0);app.innerHTML=`<main><div class="ob"><div class="logo">${LG()}NotaUp</div><h1 style="margin-top:18px">Suas Notas, Sua Evolução</h1><p class="sub">Crie seu perfil para começar.</p>
 <label>Seu nome</label><input class="ac" autocapitalize="sentences" id="n" placeholder="Ex.: Lizandro">
 <label>Defina o apelido do app</label><input class="ac" autocapitalize="sentences" id="k" placeholder="Ex.: Jarvis"><p class="sub" style="margin-top:6px">É assim que você chama o assistente por voz: “Oi, Jarvis, adiciona a nota…”</p>
 <label>E-mail (para recuperar a senha)</label><input id="em" type="email" inputmode="email" autocomplete="off" autocapitalize="off" placeholder="voce@email.com">
@@ -89,9 +89,8 @@ const TYPES=['Atividade','Projeto','Prova','Teste','Trabalho'],cap=s=>s.charAt(0
 function render(){applyTheme();
     if(!S.user){return ob()}
     if(locked){return lockView()}
-    const v={home,hist,cal,cfg}[view]();
-    const pa=pgAnim;pgAnim=0;const _m=$('main'),_s=(!pa&&_m)?_m.scrollTop:0;app.innerHTML=`<main class="${pa?'pg':''}" style="--enx:${pgDir*34}px">${v}</main>${vp?vpBox():`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav class="${pa?'nv':''}">${[['home','Início'],['hist','Histórico'],['cal','Calendário'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheetH()}`;if(_s){const m2=$('main');if(m2)m2.scrollTop=_s}if(pa)countUp();vpScroll();
-}
+    const v={home,hist,cal,ativ,cfg}[view]();
+    const pa=pgAnim;pgAnim=0;const _m=$('main'),_s=(!pa&&_m)?_m.scrollTop:0;app.innerHTML=`<main class="${pa?'pg':''}" style="--enx:${pgDir*34}px">${v}</main>${vp?vpBox():`<button class="fab" onclick="mic()" aria-label="Falar com ${esc(S.user.nick)}">${IC.mic}</button>`}<nav class="${pa?'nv':''}">${[['home','Início'],['hist','Histórico'],['cal','Calendário'],['ativ','Atividades'],['cfg','Configurações']].map(([k,l])=>`<button class="${view==k?'on':''}" onclick="go('${k}')">${IC[k]}${l}</button>`).join('')}</nav>${sheetH()}`;if(_s){const m2=$('main');if(m2)m2.scrollTop=_s}if(pa)countUp();vpScroll();if(curToast&&!curToast.isConnected)app.appendChild(curToast)}
 function ask(msg,fn,label){cb=fn;openSheet(`<h2>${esc(msg)}</h2><div class="row" style="margin-top:18px"><button class="btn alt" onclick="closeSheet()">Cancelar</button><button class="btn" onclick="const g=cb;closeSheet();g&&g()">${label||'Confirmar'}</button></div>`)}
 // calendário / tarefas
 function cal(){const late=S.tasks.filter(t=>!t.graded&&daysTo(t.date)<0),up=S.tasks.filter(t=>daysTo(t.date)>=0).sort((a,b)=>a.date<b.date?-1:1),past=S.tasks.filter(t=>t.graded&&daysTo(t.date)<0).sort((a,b)=>a.date<b.date?1:-1);
@@ -107,7 +106,7 @@ function drawCal(){const el=$('#cpw');if(!el)return;const y=cp.y,m=cp.m,first=ne
     el.innerHTML=`<div class="row sp"><button class="btn sm alt" onclick="cm(-1)" aria-label="Mês anterior">‹</button><b style="text-transform:capitalize">${mn}</b><button class="btn sm alt" onclick="cm(1)" aria-label="Próximo mês">›</button></div><div class="cg">${'DSTQQSS'.split('').map(x=>`<span>${x}</span>`).join('')}${c}</div>`}
 function pick(i){cp.sel=i;drawCal();$('#dl').textContent=dfmt(i)}
 function cm(k){const d=new Date(cp.y,cp.m+k,1);cp.y=d.getFullYear();cp.m=d.getMonth();drawCal()}
-function addTask(o){if(!o.date)return toast('Selecione a data de entrega.');if(!o.title)return toast('Digite a descrição.');if(isNaN(o.pts))return toast('Informe quantos pontos vale.');
+function addTask(o){if(!o.date)return toast('Selecione a data de entrega.');if(!o.title)return toast('Digite a descrição.');if(isNaN(o.pts)||o.pts<=0)return toast('Informe quantos pontos vale (maior que zero).');
     S.tasks.push({id:uid(),d:o.d,type:o.type,title:cap(o.title),date:o.date,pts:o.pts,graded:false});log(`Tarefa criada: ${o.type} – ${o.title} (${dn(o.d)}, ${f(o.pts)} pts) para ${dfmt(o.date)}`);save();closeSheet();toast('Tarefa salva!');remind()}
 function delTask(id){const t=S.tasks.find(x=>x.id==id);if(!t)return render();S.tasks=S.tasks.filter(x=>x.id!=id);log('Tarefa excluída: '+t.title);save();render()}
 // notas
@@ -167,7 +166,7 @@ let hq=Promise.resolve();
 function handle(tx,typed){hq=hq.then(()=>handle1(tx,typed)).catch(e=>console.error(e));return hq}
 function localReply(tx){try{return voice(tx)}catch(e){console.error(e);return P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}}
 async function handle1(tx,typed){if(!vp)return;log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;vp.chips=null;
-    if(S.ai.key){vp.think=1;vp.act='';vpaint();try{a=await aiReply(tx)}catch(e){console.warn(e);a=localReply(tx);if(vp)vp.msgs.push({r:'n',t:'⚠ '+aiP().name+' indisponível: '+e.msg+' Respondi pelo modo local.'});if(!aiWarned[e.kind]){aiWarned[e.kind]=1;toast(e.msg)}log('Assistente IA indisponível: '+e.msg)}if(vp){vp.think=0;vp.act=''}}
+    aiMut=0;if(S.ai.key&&!greetOnly(tx)){vp.think=1;vp.act='';vpaint();try{a=await aiReply(tx)}catch(e){console.warn(e);a=aiMut?P('Fiz o que você pediu, mas a conexão caiu antes de eu confirmar. Dá uma olhada na tela.','A ação foi executada, mas a conexão caiu antes da confirmação. Verifique na tela.'):localReply(tx);if(vp)vp.msgs.push({r:'n',t:'⚠ '+aiP().name+' indisponível: '+e.msg+(aiMut?'':' Respondi pelo modo local.')});if(!aiWarned[e.kind]){aiWarned[e.kind]=1;toast(e.msg)}log('Assistente IA indisponível: '+e.msg)}if(vp){vp.think=0;vp.act=''}}
     else a=localReply(tx);if(a)say('j',a);if(vp){vp.chips=sugg(tx);vpaint()}}
 function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}speak(t);const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
 function mic(){vpAnim=1;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;ttsUnlock();aiHist=[];const g=P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`);vp={msgs:[{r:'j',t:g}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();speak(g);if(SR)listen(SR)}
@@ -199,6 +198,8 @@ function agenda(){const L=[],late=S.tasks.filter(t=>!t.graded&&daysTo(t.date)<0)
 const NUM={zero:0,dois:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10},MES={janeiro:0,fevereiro:1,marco:2,abril:3,maio:4,junho:5,julho:6,agosto:7,setembro:8,outubro:9,novembro:10,dezembro:11},SEM={domingo:0,segunda:1,terca:2,quarta:3,quinta:4,sexta:5,sabado:6},rx=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function words2num(t){t=t.replace(/\b(zero|dois|tres|quatro|cinco|seis|sete|oito|nove|dez)\b/g,w=>NUM[w]).replace(/\b(tirei|tirou|fiz|consegui|nota|valia|valendo|vale|dia|unidade)\s+um\b/g,'$1 1');return t.replace(/(\d+)\s+e\s+meio\b/g,'$1.5')}
 function parseDate(t){const n=new Date();n.setHours(12,0,0,0);let m;
+    if(m=t.match(/daqui\s*a\s*(\d+)\s*(dias?|semanas?)/)){n.setDate(n.getDate()+(+m[1])*(/sem/.test(m[2])?7:1));return ymd(n)}
+    if(/semana que vem|proxima semana/.test(t)){n.setDate(n.getDate()+7);return ymd(n)}
     if(/depois de amanha/.test(t)){n.setDate(n.getDate()+2);return ymd(n)}
     if(/\bamanha\b/.test(t)){n.setDate(n.getDate()+1);return ymd(n)}
     if(/\bhoje\b/.test(t))return ymd(n);
@@ -213,19 +214,21 @@ function finishGrade(d,T,max,s,u){const tk=S.tasks.find(x=>x.d==d.id&&!x.graded&
 const CH=['O que temos para hoje?','Minha média geral','Quanto falta para passar?','Minhas matérias'];
 const vpInner=()=>{const cs=vp.think||vp.live?null:(vp.chips||(vp.msgs.length<2?CH:null));
     const h=vp.msgs.slice(-24).map(m=>`<div class="b ${m.r} ${m.seen?'':'in'}">${esc(m.t)}</div>`).join('')+(vp.live?`<div class="b u live">${esc(vp.live)}</div>`:'')+(vp.think?'<div class="b j dots"><i></i><i></i><i></i></div>':'')+(cs?`<div class="chips">${cs.map(c=>`<button onclick="ttsUnlock();handle('${c}',1)">${c}</button>`).join('')}</div>`:'');vp.msgs.forEach(m=>m.seen=1);return h};
-function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virgula|ponto)\s*(\d)/g,'$1.$3').replace(/(\d),(\d)/g,'$1.$2').replace(new RegExp('\\b'+rx(norm(S.user.nick))+'\\b','g'),' ').replace(/\s+/g,' ').trim();const nm=fn1();
+function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virgula|ponto)\s*(\d)/g,'$1.$3').replace(/(\d),(\d)/g,'$1.$2').replace(new RegExp('\\b'+rx(norm(S.user.nick))+'\\b','g'),' ').replace(/\s+/g,' ').trim();const nm=fn1();
+    if(!(vp&&vp.ask)){const gm=t.match(/^(?:(?:oi|ola|e ai|opa|ei|fala|alo)\s+)?(bom dia|boa tarde|boa noite)\b[\s,.!?]*(.*)$/);if(gm&&gm[2].trim()){const rest=raw.replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),' ').replace(/^\s*(?:(?:oi|olá|ola|e aí|e ai|opa|ei|fala|alô|alo)[\s,]+)?(?:bom dia|boa tarde|boa noite)[\s,.!?]*/i,'').trim();if(rest)return cap(gm[1])+', '+nm+'! '+voice(rest,fd)}}
     const A=vp&&vp.ask;if(A){vp.ask=null;const x=num(t);
         if(/^(nao|deixa|cancela|esquece|para)\b/.test(t))return P('Beleza, deixei pra lá.','Certo, cancelado.');
         if(A.kind=='yes'&&/^(sim|pode|claro|confirm\w*|isso|ok|quero|exato)\b/.test(t))return A.fn();
         if(A.kind=='score'&&x.length&&t.split(' ').length<=5&&!/materia|disciplina|prova|trabalho|atividade|projeto|teste/.test(t))return finishGrade(S.discs.find(d=>d.id==A.d),A.T,A.max,x[0],A.u);
+        if(A.kind=='disc'){const nm0=cap(raw.replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),' ').replace(/^\s*(?:a\s+|o\s+)?(?:mat[ée]ria|disciplina)?\s*(?:d[eao]s?\s+)?/i,'').replace(/[.!?,]+\s*$/,'').trim());if(nm0&&nm0.split(/\s+/).length<=4){const dd=addDisc(nm0);if(dd&&dd.id)return voice(A.raw,dd)}}
         if(A.kind=='date'){const iso=parseDate(t);if(iso)return mkTask(A.d,A.T,iso,A.pts)}}
-    const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t),d=findDisc(t);
+    const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet|marc|coloc|insir/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|marc|coloc|insir|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t);let d=fd||findDisc(t);
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(formal|corporativ|empresarial|profissional)/.test(t)){S.tone='formal';save();log('Jarvis: tom formal');return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(amig|descontra|informal|casual)/.test(t)){S.tone='amigo';save();log('Jarvis: tom de amigo');return `Fechou, ${nm}! Agora a gente conversa como amigos.`}
     if(/(mud|alter|troc|defin)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
     if(/(modo|tema)\s*(escuro|noturno)/.test(t)){setTheme('dark');return P('Pronto, modo escuro ligado.','Modo escuro ativado.')}
     if(/(modo|tema)\s*claro/.test(t)){setTheme('light');return P('Pronto, modo claro ligado.','Modo claro ativado.')}
-    let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
+    let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria|atividades)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],atividades:['ativ','as atividades'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
     if(/^(tchau|ate mais|ate logo|encerrar|fechar|pode fechar|era so isso)/.test(t)){setTimeout(stopVoice,1400);return P(`Falou, ${nm}! Até mais.`,'Até logo. Estarei à disposição.')}
     if(/(o que|que)\s*(temos|tenho|tem)\b.*(hoje|agenda|pendente)|minha agenda|pendencia|o que falta/.test(t))return agenda();
     if(!act){
@@ -239,18 +242,25 @@ function voice(raw){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(virg
         if(/obrigad|valeu|brigad/.test(t))return P(`Por nada, ${nm}! Tamo junto.`,'Disponha. Estou à disposição.');
         if(/tudo bem|como (voce|vc) (esta|ta|vai)|como vai/.test(t))return P('Tudo ótimo por aqui! E você, como tá? O que vamos resolver hoje?','Estou bem, obrigado por perguntar. Em que posso ajudá-lo?');
         if(/quem (e|eh) voce|seu nome|o que voce faz|ajuda|o que (voce )?sabe/.test(t))return P(`Sou o ${S.user.nick}, seu parceiro do NotaUp! Lanço notas, crio matérias e tarefas, calculo médias, digo quanto falta pra passar e te aviso do que tá pendente. É só pedir.`,`Sou ${S.user.nick}, assistente do NotaUp. Registro notas, cadastro disciplinas e tarefas, calculo médias, informo quanto falta para aprovação e as pendências.`);
-        if(/bom dia|boa tarde|boa noite/.test(t))return P(`${cap(hr())}, ${nm}! Tudo bem? O que temos para hoje?`,`${cap(hr())}, ${nm}. Em que posso ajudá-lo hoje?`);
+        {const gr=t.match(/bom dia|boa tarde|boa noite/);if(gr)return P(`${cap(gr[0])}, ${nm}! Tudo bem? O que temos para hoje?`,`${cap(gr[0])}, ${nm}. Em que posso ajudá-lo hoje?`)}
         if(t===''||/\b(oi|ola|e ai|opa|ei|alo|fala|salve|hey)\b/.test(t))return P(`Oi, ${nm}! E aí, tudo bem? O que temos para hoje?`,`Olá, ${nm}. Como posso ajudar?`)}
     if(!cmd)return SCOPE();
     const m=n0.match(/(?:cri\w*|cadastr\w*|adicion\w*|acrescent\w*|nov[ao])\s+(?:a\s+|uma\s+)?(?:nova\s+)?(?:materia|disciplina)\s+(?:de\s+|da\s+|do\s+)?(.+)$/);
     if(m){const n=cap(raw.slice(raw.length-m[1].length).replace(new RegExp('[\\s,]*'+rx(S.user.nick)+'[\\s.!?]*$','i'),'').replace(/[\s,]*por favor[\s.!?]*$/i,'').replace(/[.!?]+$/,'').trim());if(!n)return P('Qual é o nome da matéria?','Qual o nome da disciplina?');if(S.discs.some(x=>norm(x.name)==norm(n)))return P(`A matéria ${n} já existe, ${nm}.`,`A disciplina ${n} já está cadastrada.`);addDisc(n);return P(`Pronto, ${nm}! Matéria ${n} adicionada.`,`Disciplina ${n} cadastrada com sucesso.`)}
+    const guessDisc=()=>{let m=n0.match(/\b(?:prova|teste|atividade|projeto|trabalho)\s+(?:d[eao]s?|em)\s+(.+?)(?=\s+(?:para|pra|no|na|dia|amanha|hoje|depois|valendo|vale|valia|unidade|semana|daqui|com|que|tem|e)\b|$)/);
+            if(!m)m=n0.match(/\b(?:tirei|tirou|fiz|consegui|peguei|nota)\s+(?:d[eao]\s+)?\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?\s+(?:em|na|no|de|da|do)\s+(?!prova|teste|atividade|projeto|trabalho)(.+?)(?=\s+(?:para|pra|no|na|dia|amanha|hoje|unidade|valendo|vale|valia|com|que|e)\b|$)/);
+            if(!m)return null;const i=m.index+m[0].indexOf(m[1]),nme=cap(raw.slice(i,i+m[1].length).replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),'').replace(/[\s,.!?]+$/,'').trim());
+            return nme&&nme.length>1&&!/^\d/.test(nme)&&nme.split(/\s+/).length<=4?nme:null},
+        autoDisc=()=>{const g=guessDisc();if(!g)return null;const dd=addDisc(g);return dd&&dd.id?dd:null},
+        askDisc=()=>{if(vp)vp.ask={kind:'disc',raw};return P('Qual é a matéria? Se ela ainda não existir, eu crio pra você.','Qual é a disciplina? Se não estiver cadastrada, eu a criarei.')};
     const noDisc=P(`Hmm, não achei essa matéria, ${nm}. Qual é o nome dela? Se for nova, diga “adicionar matéria de …”.`,'Não localizei essa disciplina. Informe o nome ou diga “adicionar matéria de …”.');
     if(/(apag|remov|exclu|delet)\w*.*(materia|disciplina)/.test(t)){if(!d)return noDisc;if(vp)vp.ask={kind:'yes',fn:()=>{const n=d.name;delDisc(d.id);return P(`Pronto, a matéria ${n} foi excluída.`,`Disciplina ${n} excluída.`)}};return P(`Tem certeza que quer excluir ${d.name} e todas as notas dela?`,`Confirma a exclusão de ${d.name} e de todas as notas?`)}
     if(/(apag|remov|exclu|desfa)\w*.*(ultima|nota)/.test(t)){const g=S.grades.pop();if(!g)return P('Não tem nenhuma nota pra remover.','Não há notas para remover.');log('Nota removida por voz: '+g.name);save();render();return P('Pronto, tirei a última nota.','Última nota removida.')}
-    const ty=(t.match(/prova|teste|atividade|projeto|trabalho/)||[''])[0],vm=t.match(/val\w*\s*(\d+(?:\.\d+)?)/),sm=t.match(/(?:tirei|tirou|fiz|consegui|peguei|obtive|ganhei|marquei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)/),date=parseDate(t.replace(/(primeira|segunda|terceira)\s*unidade/g,''));
-    if(ty&&date&&!sm){if(!d)return noDisc;return mkTask(d.id,cap(ty),date,vm?+vm[1]:10)}
-    if(ty&&!sm&&!vm&&/agend|marc|lembr|cri[ae]|tenho|\btem\b/.test(t)){if(!d)return noDisc;const T=cap(ty);if(vp)vp.ask={kind:'date',d:d.id,T,pts:10};return P(`Beleza! Pra quando é ${T.toLowerCase()} de ${d.name}?`,`Para qual data está marcada ${T.toLowerCase()} de ${d.name}?`)}
-    if((ty||/nota/.test(t))&&/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei/.test(t)){if(!d)return noDisc;const T=cap(ty||'atividade'),
+    let ty=(t.match(/prova|teste|atividade|projeto|trabalho/)||[''])[0],vm=t.match(/val\w*\s*(\d+(?:\.\d+)?)/),sm=t.match(/(?:tirei|tirou|fiz|consegui|peguei|obtive|ganhei|marquei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)/),date=parseDate(t.replace(/(primeira|segunda|terceira)\s*unidade/g,''));
+    {const fr=t.match(/(?:tirei|tirou|fiz|consegui|peguei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);if(fr){sm=['',fr[1]];vm=['',fr[2]]}}
+    if(ty&&date&&!sm){d=d||autoDisc();if(!d)return askDisc();return mkTask(d.id,cap(ty),date,vm?+vm[1]:10)}
+    if(ty&&!sm&&!vm&&(/agend|marc|lembr|cri[ae]|tenho|\btem\b|coloc/.test(t)||(/adicion|insir/.test(t)&&!/nota/.test(t)))){d=d||autoDisc();if(!d)return askDisc();const T=cap(ty);if(vp)vp.ask={kind:'date',d:d.id,T,pts:10};return P(`Beleza! Pra quando é ${T.toLowerCase()} de ${d.name}?`,`Para qual data está marcada ${T.toLowerCase()} de ${d.name}?`)}
+    if((ty||/nota/.test(t)||sm)&&(sm||/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei|marc|insir/.test(t))){d=d||autoDisc();if(!d)return askDisc();const T=cap(ty||'atividade'),
         um=t.match(/(\d)\s*[aºªo]?\s*unidade/)||t.match(/unidade\s*(\d)/),w=t.match(/(primeira|segunda|terceira)\s*unidade/),u=um?+um[1]:w?{primeira:1,segunda:2,terceira:3}[w[1]]:1,max=vm?+vm[1]:null;
         if(!sm){if(vp)vp.ask={kind:'score',d:d.id,T,max,u};return P(`Beleza, ${T.toLowerCase()} de ${d.name}. Quanto você tirou?`,`${T} de ${d.name}. Qual foi a nota obtida?`)}return finishGrade(d,T,max,+sm[1],u)}
     return P(`Não entendi bem, ${nm}. Pode repetir? Ex.: “tirei 8 na prova de Português”, “quanto falta pra passar em Inglês” ou “o que temos para hoje”.`,'Não compreendi a solicitação. Poderia reformular? Exemplo: “quanto falta para passar em Inglês”.')}
@@ -364,7 +374,7 @@ const TT=(name,description,props,req)=>({type:'function',function:{name,descript
 const TYPE_E={type:'string',enum:TYPES};
 const TOOLS=[
     TT('criar_disciplina','Cadastra uma nova disciplina (matéria).',{nome:{type:'string'}},['nome']),
-    TT('excluir_disciplina','Exclui uma disciplina com todas as notas e tarefas dela. Só use depois que o usuário confirmar.',{disciplina:{type:'string'}},['disciplina']),
+    TT('excluir_disciplina','Exclui uma disciplina com todas as notas e tarefas dela. Só use depois que o usuário confirmar, e então passe confirmado=true.',{disciplina:{type:'string'},confirmado:{type:'boolean',description:'true somente se o usuário confirmou a exclusão'}},['disciplina','confirmado']),
     TT('lancar_nota','Registra uma nota obtida pelo usuário.',{disciplina:{type:'string'},nota:{type:'number',description:'nota obtida'},valor:{type:'number',description:'quanto a avaliação valia (padrão 10)'},unidade:{type:'integer',enum:[1,2,3]},tipo:TYPE_E,descricao:{type:'string'}},['disciplina','nota']),
     TT('remover_ultima_nota','Remove a última nota lançada.',{}),
     TT('simular_nota','Simula uma nota hipotética SEM salvar e devolve como ficariam as médias.',{disciplina:{type:'string'},nota:{type:'number'},valor:{type:'number',description:'quanto valeria (padrão 10)'},unidade:{type:'integer',enum:[1,2,3]}},['disciplina','nota']),
@@ -372,13 +382,15 @@ const TOOLS=[
     TT('excluir_tarefa','Exclui uma tarefa do calendário pelo id.',{id:{type:'string'}},['id']),
     TT('alterar_media_aprovacao','Muda a média necessária para aprovação.',{media:{type:'number'}},['media']),
     TT('mudar_tema','Muda o tema do app.',{tema:{type:'string',enum:['claro','escuro']}},['tema']),
-    TT('abrir_tela','Abre uma tela do app.',{tela:{type:'string',enum:['inicio','historico','calendario','configuracoes']}},['tela'])];
+    TT('abrir_tela','Abre uma tela do app.',{tela:{type:'string',enum:['inicio','historico','calendario','atividades','configuracoes']}},['tela'])];
 function discBy(n){if(!n)return null;const k=norm(String(n));return S.discs.find(d=>norm(d.name)==k)||findDisc(k)||null}
-function aiTool(name,a){a=a||{};const nf=()=>({erro:'disciplina não encontrada',disciplinas_existentes:S.discs.map(x=>x.name)});
+function discOrNew(n){let d=discBy(n);if(!d&&n&&String(n).trim()&&!/^tod/.test(norm(String(n)))){d=addDisc(String(n).trim())}return d&&d.id?d:null}
+let aiMut=0;
+function aiTool(name,a){if(!['simular_nota','abrir_tela'].includes(name))aiMut=1;a=a||{};const nf=()=>({erro:'disciplina não encontrada',disciplinas_existentes:S.discs.map(x=>x.name)});
     switch(name){
         case 'criar_disciplina':{const n=cap(String(a.nome||'').trim());if(!n)return {erro:'nome vazio'};if(S.discs.some(x=>norm(x.name)==norm(n)))return {erro:'essa disciplina já existe'};addDisc(n);return {ok:true,disciplina:n}}
-        case 'excluir_disciplina':{const d=discBy(a.disciplina);if(!d)return nf();delDisc(d.id);return {ok:true,excluida:d.name}}
-        case 'lancar_nota':{const d=discBy(a.disciplina);if(!d)return nf();const T=TYPES.includes(a.tipo)?a.tipo:'Atividade',s=+a.nota,u=[1,2,3].includes(+a.unidade)?+a.unidade:1,
+        case 'excluir_disciplina':{const d=discBy(a.disciplina);if(!d)return nf();if(a.confirmado!==true)return {erro:'peça confirmação ao usuário antes de excluir'};delDisc(d.id);return {ok:true,excluida:d.name}}
+        case 'lancar_nota':{const d=discOrNew(a.disciplina);if(!d)return nf();const T=TYPES.includes(a.tipo)?a.tipo:'Atividade',s=+a.nota,u=[1,2,3].includes(+a.unidade)?+a.unidade:1,
             tk=S.tasks.find(x=>x.d==d.id&&!x.graded&&norm(x.type)==norm(T)),max=+a.valor>0?+a.valor:tk?tk.pts:10;
             if(!(s>=0))return {erro:'nota inválida'};if(s>max)return {erro:`a nota ${s} é maior que o valor ${max}`};if(tk)tk.graded=true;
             S.grades.push({id:uid(),d:d.id,u,type:T,name:a.descricao?cap(String(a.descricao)):tk?tk.title:T+' de '+d.name,max,s,date:today()});
@@ -387,7 +399,7 @@ function aiTool(name,a){a=a||{};const nf=()=>({erro:'disciplina não encontrada'
         case 'simular_nota':{const d=discBy(a.disciplina);if(!d)return nf();const u=[1,2,3].includes(+a.unidade)?+a.unidade:1,mx=+a.valor>0?+a.valor:10,v=+a.nota;if(!(v>=0&&v<=mx))return {erro:'nota inválida'};
             S.grades.push({id:'sim',d:d.id,u,type:'x',name:'x',max:mx,s:v,date:today()});const r={simulacao:true,nao_salvo:true,media_unidade:r2(unitAvg(d.id,u)),media_disciplina:r2(discAvg(d.id)),situacao:need(d.id)};S.grades.pop();return r}
         case 'remover_ultima_nota':{const g=S.grades.pop();if(!g)return {erro:'não há notas'};log('Nota removida pelo assistente: '+g.name);save();render();return {ok:true,removida:g.name}}
-        case 'agendar_tarefa':{const all=/^tod/.test(norm(String(a.disciplina||''))),d=all?null:discBy(a.disciplina);if(!all&&!d)return nf();
+        case 'agendar_tarefa':{const all=/^tod/.test(norm(String(a.disciplina||''))),d=all?null:discOrNew(a.disciplina);if(!all&&!d)return nf();
             if(!/^\d{4}-\d{2}-\d{2}$/.test(a.data||'')||isNaN(new Date(a.data+'T12:00')))return {erro:'data inválida, use AAAA-MM-DD'};
             const T=TYPES.includes(a.tipo)?a.tipo:'Atividade',pts=+a.pontos>0?+a.pontos:10,did=all?'all':d.id;
             S.tasks.push({id:uid(),d:did,type:T,title:a.descricao?cap(String(a.descricao)):T+' de '+dn(did),date:a.data,pts,graded:false});
@@ -395,7 +407,7 @@ function aiTool(name,a){a=a||{};const nf=()=>({erro:'disciplina não encontrada'
         case 'excluir_tarefa':{const t=S.tasks.find(x=>x.id==a.id);if(!t)return {erro:'tarefa não encontrada'};S.tasks=S.tasks.filter(x=>x.id!=a.id);log('Tarefa excluída pelo assistente: '+t.title);save();render();return {ok:true}}
         case 'alterar_media_aprovacao':{const v=+a.media;if(!(v>0&&v<=10))return {erro:'use um valor entre 0 e 10'};S.target=v;log('Média de aprovação alterada para '+v+' (assistente)');save();render();return {ok:true}}
         case 'mudar_tema':setTheme(a.tema=='escuro'?'dark':'light');return {ok:true};
-        case 'abrir_tela':{const k={inicio:'home',historico:'hist',calendario:'cal',configuracoes:'cfg'}[a.tela];if(!k)return {erro:'tela inválida'};go(k);return {ok:true}}}
+        case 'abrir_tela':{const k={inicio:'home',historico:'hist',calendario:'cal',atividades:'ativ',configuracoes:'cfg'}[a.tela];if(!k)return {erro:'tela inválida'};go(k);return {ok:true}}}
     return {erro:'ferramenta desconhecida'}}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function aiErr(kind,msg){const e=new Error(msg);e.kind=kind;e.msg=msg;return e}
@@ -403,15 +415,17 @@ const aiP=()=>AI_P[S.ai.prov]||AI_P.openai;
 function aiToClaude(ms){const out=[];for(const m of ms.slice(1)){
     if(m.role=='tool'){const b={type:'tool_result',tool_use_id:m.tool_call_id,content:m.content},l=out[out.length-1];if(l&&l.role=='user'&&Array.isArray(l.content)&&l.content[0].type=='tool_result')l.content.push(b);else out.push({role:'user',content:[b]})}
     else if(m.role=='assistant'&&m.tool_calls){const c=[];if(m.content)c.push({type:'text',text:m.content});m.tool_calls.forEach(t=>{let i={};try{i=JSON.parse(t.function.arguments||'{}')}catch(e){}c.push({type:'tool_use',id:t.id,name:t.function.name,input:i})});out.push({role:'assistant',content:c})}
-    else out.push({role:m.role,content:m.content})}return out}
+    else out.push({role:m.role,content:Array.isArray(m.content)?m.content.map(p=>p.type=='image_url'?{type:'image',source:{type:'base64',media_type:'image/jpeg',data:String(p.image_url.url).split(',')[1]}}:p):m.content})}return out}
 async function aiCall(messages,opt){opt=opt||{};const cl=S.ai.prov=='claude',P0=aiP(),key=S.ai.key.trim();
-    for(let a=0;a<3;a++){let r;
+    if(!key)throw aiErr('auth','Nenhuma chave conectada. Conecte em Configurações.');if(/[^\x21-\x7e]/.test(key))throw aiErr('auth','A chave tem caracteres inválidos (espaço, acento ou quebra de linha). Copie de novo e cole sem nada extra.');
+    for(let a=0;a<3;a++){let r,ac=window.AbortController?new AbortController():null,tm=ac?setTimeout(()=>ac.abort(),opt.timeout||45000):0;
         try{const url=cl?'https://api.anthropic.com/v1/messages':'https://api.openai.com/v1/chat/completions',
             hd=cl?{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}:{'Content-Type':'application/json',Authorization:'Bearer '+key},
             tools=opt.noTools?{}:{tools:cl?TOOLS.map(t=>({name:t.function.name,description:t.function.description,input_schema:t.function.parameters})):TOOLS},
             body=cl?Object.assign({model:S.ai.model,max_tokens:opt.max||600,system:messages[0].content,messages:aiToClaude(messages)},tools):Object.assign({model:S.ai.model||'gpt-4o-mini',messages,max_completion_tokens:opt.max||600},tools);
-            r=await fetch(url,{method:'POST',headers:hd,body:JSON.stringify(body)})}
-        catch(e){throw aiErr('net','Sem conexão com o '+P0.name+'. Verifique a internet.')}
+            r=await fetch(url,{method:'POST',headers:hd,body:JSON.stringify(body),signal:ac?ac.signal:undefined})}
+        catch(e){clearTimeout(tm);throw aiErr('net',e&&e.name=='AbortError'?P0.name+' demorou demais para responder. Tente de novo.':'Sem conexão com o '+P0.name+'. Verifique a internet.')}
+        clearTimeout(tm);
         if(r.ok){const j=await r.json();if(!cl)return j.choices[0].message;const tx=j.content.filter(b=>b.type=='text').map(b=>b.text).join(' '),tc=j.content.filter(b=>b.type=='tool_use').map(b=>({id:b.id,type:'function',function:{name:b.name,arguments:JSON.stringify(b.input||{})}}));return {content:tx,tool_calls:tc}}
         let j={};try{j=await r.json()}catch(e){}const er=j.error||{},msg=String(er.message||''),code=String(er.code||er.type||''),quota=/insufficient_quota|billing/.test(code)||/quota|billing|credit balance/i.test(msg);
         if((r.status==429||r.status==503||r.status==529)&&!quota&&a<2){await sleep((+r.headers.get('retry-after')||2*(a+1))*1000);continue}
@@ -454,19 +468,26 @@ const TTS=()=>window.speechSynthesis||null;
 function voices(){const s=TTS();if(!s)return [];const all=s.getVoices()||[],pt=all.filter(v=>/^pt/i.test(v.lang));return pt.length?pt:all}
 function pickVoice(){const L=voices();return L.find(v=>v.voiceURI==S.voice.uri)||L.find(v=>/pt[-_]BR/i.test(v.lang))||L[0]||null}
 // iPhone/Safari só deixa falar depois de um toque do usuário: este "desbloqueio" é feito no toque do microfone/enviar
-function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;s.speak(u);ttsOK=true}catch(e){}}
+function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{const u=new SpeechSynthesisUtterance('.');u.volume=0;u.lang='pt-BR';uttRef.push(u);s.speak(u);ttsOK=true}catch(e){}}
 const ttsClean=t=>String(t).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'').replace(/[“”"]/g,'').replace(/\s+/g,' ').trim();
-function ttsChunks(t){const out=[];let cur='';for(const p of t.split(/(?<=[.!?;:])\s+/)){if(cur&&(cur+' '+p).length>180){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
-function speak(t,force){const s=TTS();if(!s||(!S.voice.on&&!force))return;const txt=ttsClean(t),parts=ttsChunks(txt);if(!parts.length)return;
-    const gen=++spkGen;try{s.cancel()}catch(e){}speaking=true;vpaint();if(rec&&running){try{rec.abort()}catch(e){}running=false}
-    const q=vParams(),v=q.v,rate=(S.voice.rate||1)*q.r,done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;vpaint();if(keep&&vp){running=false;recLater(450)}};
-    parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;u.pitch=q.p;if(i==parts.length-1){u.onend=done;u.onerror=done}s.speak(u)});
-    clearTimeout(spkT);spkT=setTimeout(done,txt.length*80/rate+2500);try{if(s.paused)s.resume()}catch(e){}}
+function ttsChunks(t){const out=[];let cur='';for(const p of (t.match(/[^.!?;:]+[.!?;:]*\s*/g)||[t]).map(x=>x.trim()).filter(Boolean)){if(cur&&(cur+' '+p).length>180){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
+const uttRef=[];
+function speak(t,force,tries){const s=TTS();if(!s||(!S.voice.on&&!force))return;const txt=ttsClean(t),parts=ttsChunks(txt);if(!parts.length)return;
+    const gen=++spkGen,hadRec=!!(rec&&running);try{s.cancel()}catch(e){}speaking=true;vpaint();if(hadRec){try{rec.abort()}catch(e){}running=false}
+    const q=vParams(),v=q.v,rate=Math.max(.5,Math.min(2,(S.voice.rate||1)*q.r)),started=[0],
+        done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;uttRef.length=0;vpaint();if(keep&&vp){running=false;recLater(450)}};
+    const go=()=>{if(gen!==spkGen)return;try{if(s.paused)s.resume()}catch(e){}uttRef.length=0;
+        parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;u.pitch=q.p;u.volume=1;uttRef.push(u);
+            if(i==0)u.onstart=()=>{started[0]=1};if(i==parts.length-1){u.onend=done;u.onerror=ev=>{if(ev&&(ev.error=='canceled'||ev.error=='interrupted')&&gen!==spkGen)return;done()}}s.speak(u)});
+        if(!(tries>0))setTimeout(()=>{if(gen===spkGen&&speaking&&!started[0]&&!s.speaking){try{s.cancel()}catch(e){}speak(t,force,1)}},1200)};
+    clearTimeout(spkT);spkT=setTimeout(done,txt.length*90/rate+3000);
+    if(hadRec)setTimeout(go,150);else go()}
+// Chrome para a fala depois de ~15 s: "cutuca" a síntese enquanto fala
+setInterval(()=>{const s=TTS();if(s&&speaking&&s.speaking){try{s.pause();s.resume()}catch(e){}}},10000);
 function ttsStop(){spkGen++;clearTimeout(spkT);speaking=false;try{const s=TTS();s&&s.cancel()}catch(e){}}
 function voiceOpts(){const L=voices(),cur=pickVoice();return L.length?L.map(v=>`<option value="${esc(v.voiceURI)}" ${cur&&cur.voiceURI==v.voiceURI?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join(''):'<option value="">Voz padrão do aparelho</option>'}
 function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2>${TTS()?`
  <div class="row sp" style="margin-top:12px"><span style="font-weight:600">Falar as respostas</span><button class="sw ${S.voice.on?'on':''}" id="ttsSw" role="switch" aria-checked="${!!S.voice.on}" aria-label="Falar as respostas" onclick="S.voice.on=!S.voice.on;log('Voz do assistente '+(S.voice.on?'ligada':'desligada'));save();if(!S.voice.on)ttsStop();render()"></button></div>
- <label>Voz</label><div class="vk">${[['mulher','👩','Mulher'],['homem','👨','Homem'],['robo','🤖','Robótica']].map(([k,e,l])=>`<button data-k="${k}" class="${(S.voice.kind||'mulher')==k?'on':''}" onclick="setVoice('${k}')"><span>${e}</span>${l}</button>`).join('')}</div>
  <label>Velocidade</label><input type="range" min="0.7" max="1.5" step="0.1" value="${S.voice.rate}" onchange="S.voice.rate=+this.value;save();voiceTest()">
  <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
 function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
@@ -475,12 +496,7 @@ function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick},
 if(locked&&hasBio())setTimeout(bioUnlock,300);
 
 // ================= v8: vozes, auditoria =================
-const FEM=/luciana|fernanda|francisca|maria|vit[oó]ria|raquel|camila|female|feminin|google portugu/i,MAL=/felipe|daniel|ant[oó]nio|jorge|ricardo|thiago|jo[aã]o|male|masculin/i;
-function vParams(){const L=voices(),br=L.filter(v=>/pt[-_]BR/i.test(v.lang)),pool=br.length?br:L,k=S.voice.kind||'mulher',male=pool.find(v=>MAL.test(v.name)&&!/female|feminin/i.test(v.name)),fem=pool.find(v=>FEM.test(v.name)&&!MAL.test(v.name))||pool.find(v=>!MAL.test(v.name))||pool[0]||null;
-    if(k=='homem')return male?{v:male,p:.72,r:.9}:{v:fem,p:.45,r:.88};
-    if(k=='robo')return {v:male||fem,p:.1,r:.8};
-    return {v:fem,p:1,r:1}}
-function setVoice(k){S.voice.kind=k;log('Voz do assistente: '+k);save();document.querySelectorAll('.vk button').forEach(b=>b.classList.toggle('on',b.dataset.k==k));voiceTest()}
+function vParams(){const L=voices(),br=L.filter(v=>/pt[-_]BR/i.test(v.lang)),pool=br.length?br:L;return {v:pickVoice()||pool[0]||null,p:1,r:1}}
 const logItem=l=>`<div class="it"><div style="font-size:14px">${esc(l.m)}</div><div class="sub">${new Date(l.t).toLocaleString('pt-BR')}</div></div>`;
 function logList(){const L=S.log,rest=L.slice(3);
     return (L.slice(0,3).map(logItem).join('')||'<p class="sub">Sem registros.</p>')+(rest.length?`<div class="lx ${logAll?'open':''}" id="logX"><div class="lxi">${rest.map((l,i)=>`<div class="lxr" style="--i:${Math.min(i,12)}">${logItem(l)}</div>`).join('')}</div></div><button class="btn sm alt lbtn ${logAll?'open':''}" id="logBtn" onclick="logToggle()"><span id="logTxt">${logAll?'Mostrar menos':'Mostrar mais ('+rest.length+')'}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`:'')}
@@ -494,4 +510,39 @@ const stHtml=()=>vp?`<span class="wave"><i></i><i></i><i></i><i></i></span>${esc
 function sugg(tx){const L=[],late=S.tasks.some(t=>!t.graded&&daysTo(t.date)<0);if(late)L.push('Lançar nota pendente');if(overall()!==null){L.push('Quanto falta para passar?');L.push('Como estou indo?')}else L.push(S.discs.length?'Adicionar uma nota':'Criar uma matéria');L.push('O que temos para hoje?');return L.filter(x=>norm(x)!=norm(tx||'')).slice(0,3)}
 // ao voltar do site da chave, cola e conecta sozinho
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&aiWait&&!S.ai.key){aiWait=0;setTimeout(()=>aiPaste(1),250)}});
+
+// ================= Atividades: foto + texto -> resposta da conta vinculada (ChatGPT ou Claude) =================
+let actDraft='',actImg='',actThumb='',actBusy=0,actErr='';
+const actMd=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/^#{1,4}\s*/gm,'');
+function actList(){if(!S.acts.length)return '';return `<div class="card" style="margin-top:12px"><h2>Respostas anteriores</h2>${S.acts.map(a=>`<div class="it"><div class="sub">${new Date(a.t).toLocaleString('pt-BR')} · ${esc(a.prov)}</div>${a.th?`<img class="athumb" src="${a.th}" alt="Foto enviada">`:''}${a.q?`<p style="margin-top:6px"><b>${esc(a.q)}</b></p>`:''}<div class="ans">${actMd(a.a)}</div><div class="row" style="margin-top:8px"><button class="btn sm alt" onclick="actSay('${a.id}')">🔊 Ouvir</button><button class="btn sm alt" onclick="ask('Apagar esta resposta?',()=>actDel('${a.id}'),'Apagar')">Apagar</button></div></div>`).join('')}</div>`}
+function ativ(){const k=S.ai.key,p=aiP();
+    const head=`<h1>Atividades</h1><p class="sub">Tire uma foto ou escreva a atividade e receba a resposta${k?' do '+p.name:''} aqui dentro do app.</p>`;
+    if(!k)return head+`<div class="card" style="margin-top:14px"><h2>Conecte o ChatGPT ou o Claude</h2><p class="sub" style="margin-top:6px">Para responder as atividades, vincule sua conta em Configurações → Assistente com IA.</p><button class="btn" style="margin-top:12px" onclick="go('cfg')">Ir para Configurações</button></div>`+actList();
+    return head+`<div class="card" style="margin-top:14px"><div class="row sp"><b>Respondendo com ${esc(p.name)}</b><span class="sub">${esc(S.ai.model)}</span></div>
+ <label>Qual é a atividade?</label><textarea id="actT" rows="4" placeholder="Digite o enunciado ou a pergunta…" oninput="actDraft=this.value">${esc(actDraft)}</textarea>
+ ${actImg?`<div class="actimg"><img src="${actImg}" alt="Foto da atividade"><button class="btn sm alt" onclick="actClear()">Remover foto</button></div>`:''}
+ <div class="row" style="margin-top:10px"><button class="btn sm" style="flex:1" onclick="$('#actCam').click()">📷 Tirar foto</button><button class="btn sm alt" style="flex:1" onclick="$('#actGal').click()">🖼 Galeria</button></div>
+ <input id="actCam" type="file" accept="image/*" capture="environment" style="display:none" onchange="actPick(this)"><input id="actGal" type="file" accept="image/*" style="display:none" onchange="actPick(this)">
+ ${actErr?`<p class="sub warn" style="margin-top:8px">${esc(actErr)}</p>`:''}
+ <button class="btn" id="actGo" style="margin-top:12px" ${actBusy?'disabled':''} onclick="actSend()">${actBusy?'Analisando…':'Perguntar ao '+esc(p.name)}</button></div>`+actList()}
+function actClear(){actImg='';actThumb='';render()}
+function actPick(inp){const fl=inp.files&&inp.files[0];inp.value='';if(!fl)return;const r=new FileReader();
+    r.onerror=()=>toast('Não consegui ler essa foto.');
+    r.onload=()=>{const im=new Image();im.onerror=()=>toast('Não consegui abrir essa imagem. Tente JPG ou PNG.');
+        im.onload=()=>{const sz=(max,q)=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
+            actImg=sz(1280,.82);actThumb=sz(140,.55);actErr='';if(view=='ativ')render()};im.src=r.result};r.readAsDataURL(fl)}
+async function actSend(){if(actBusy)return;const txt=(actDraft||'').trim();if(!S.ai.key)return toast('Conecte o ChatGPT ou o Claude em Configurações.');
+    if(!txt&&!actImg)return toast('Escreva a atividade ou tire uma foto.');
+    actBusy=1;actErr='';if(view=='ativ')render();const p=aiP(),img=actImg,th=actThumb;
+    const sys=`Você é o tutor de ${S.user.name} dentro do app NotaUp. O aluno envia uma atividade escolar (texto e/ou foto). Responda em português do Brasil: dê a resposta e explique o passo a passo de forma clara e objetiva, para ele aprender. Se a foto estiver ilegível ou cortada, diga o que não deu para ler e peça outra foto. Evite markdown pesado (sem tabelas); pode usar listas simples e **negrito**.`;
+    const parts=[{type:'text',text:txt||'Resolva e explique a atividade que está na imagem.'}];if(img)parts.push({type:'image_url',image_url:{url:img}});
+    try{const m=await aiCall([{role:'system',content:sys},{role:'user',content:img?parts:parts[0].text}],{noTools:1,max:1800,timeout:90000}),a=String((m&&m.content)||'').trim();
+        if(!a)throw aiErr('other','O '+p.name+' não devolveu resposta. Tente de novo.');
+        S.acts.unshift({id:uid(),t:Date.now(),prov:p.name,q:txt.slice(0,300),th:img?th:'',a});S.acts=S.acts.slice(0,20);log('Atividade respondida por '+p.name+(img?' (com foto)':''));save();actDraft='';actImg='';actThumb='';actBusy=0;
+        if(view=='ativ')render();else toast('Resposta pronta na aba Atividades.')}
+    catch(e){actBusy=0;actErr=e.msg||String(e.message||e);if(view=='ativ')render();toast(actErr)}}
+function actSay(id){const a=S.acts.find(x=>x.id==id);if(!a)return;ttsUnlock();speak(a.a.replace(/\*\*/g,''),1)}
+function actDel(id){S.acts=S.acts.filter(x=>x.id!=id);log('Resposta de atividade apagada');save();render()}
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+function greetOnly(tx){const t=norm(String(tx)).replace(new RegExp('\\b'+rx(norm(S.user.nick))+'\\b','g'),' ').replace(/\s+/g,' ').trim();return t===''||/^(?:(?:oi|ola|e ai|opa|ei|alo|salve|hey|fala)\s+)?(?:bom dia|boa tarde|boa noite|oi|ola|e ai|opa|ei|alo|salve|hey|fala)[\s,.!?]*$/.test(t)}
 render();remind();setInterval(remind,60000);
