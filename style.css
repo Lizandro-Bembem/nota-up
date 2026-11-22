@@ -146,4 +146,4 @@ textarea{width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(
 .ans{white-space:pre-wrap;line-height:1.5;font-size:14.5px;margin-top:6px}
 .btn:disabled{opacity:.6;cursor:default}
 nav button{font-size:10.5px;padding:6px 2px}
-.ur{margin-top:14px;padding-top:12px;border-top:1px solid var(--sand)}.ur input[type=date]{min-width:0;padding:11px 10px;font-size:15px}
+.ur{margin-top:14px;padding-top:12px;border-top:1px solid var(--sand)}.uf{margin-top:8px;border:1.5px solid var(--sand);border-radius:14px;background:var(--card);overflow:hidden}.uf .ul{display:flex;align-items:center;gap:8px;padding:0 14px;margin:0}.uf .ul+.ul{border-top:1px solid var(--sand)}.uf .ul span{color:var(--mut);opacity:.65;font-size:16px;font-weight:500;white-space:nowrap}.uf .ul input{flex:1;min-width:0;width:auto;margin:0;padding:14px 0;border:0;background:transparent;text-align:left;letter-spacing:.5px}.uf .ul input::placeholder{color:var(--mut);opacity:.4}
