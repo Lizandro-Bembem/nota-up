@@ -41,7 +41,7 @@ function ob(){setTimeout(()=>{if(curToast&&!curToast.isConnected)app.appendChild
 <label>Crie uma senha</label><input id="pw1" type="password" autocomplete="off" placeholder="Mínimo 4 caracteres"><label>Repita a senha</label><input id="pw2" type="password" autocomplete="off">
 <label>Foto (opcional)</label><input id="p" type="file" accept="image/*">
 <button class="btn" style="margin-top:18px" onclick="reg()">Começar</button></div></main>`}
-async function reg(){const name=cap($('#n').value.trim()),nick=cap($('#k').value.trim()),em=$('#em').value.trim().toLowerCase(),p1=$('#pw1').value,p2=$('#pw2').value;if(!name||!nick)return toast('Preencha seu nome e o apelido do app.');
+async function reg(){const name=$('#n').value.trim().split(/\s+/).map(cap).join(' '),nick=cap($('#k').value.trim()),em=$('#em').value.trim().toLowerCase(),p1=$('#pw1').value,p2=$('#pw2').value;if(!name||!nick)return toast('Preencha seu nome e o apelido do app.');
     if(!mailOK(em))return toast('Informe um e-mail válido.');if(p1.length<4)return toast('A senha precisa ter pelo menos 4 caracteres.');if(p1!==p2)return toast('As senhas não conferem.');
     await setPw(p1);S.sec.email=em;
     const fin=photo=>{S.user={name,nick,photo};log('Perfil criado: '+name+' (apelido do app: '+nick+')');save();render();bioOffer(notifPrompt)};
@@ -78,7 +78,7 @@ function unitBox(i){const f=(k,lab)=>{const sv=S.units[i][k],lock=!!sv&&!uEd[i+k
     return `<div class="ur"><b>${i+1}ª Unidade</b><div class="uf">${f('s','Começou em')}${f('e','Termina em')}</div><button class="btn sm" id="usv${i}" style="display:none;margin-top:8px" onclick="unitSave(${i})">Salvar</button></div>`}
 function cfgAvg(key,el,fin){if(el.dataset.o===undefined)el.dataset.o=S[key];
     const raw=String(el.value).trim().replace(',','.'),v=parseFloat(raw);
-    if(!raw||isNaN(v)||v<=0||v>10){if(fin){toast('Digite uma média entre 0 e 10.');el.value=String(S[key]).replace('.',',');delete el.dataset.o}return}
+    if(!raw||isNaN(v)||v<=0||v>10){if(fin){const o=parseFloat(el.dataset.o);if(o>0&&o<=10){S[key]=o;save()}toast('Digite uma média entre 0 e 10.');el.value=String(S[key]).replace('.',',');delete el.dataset.o}return}
     const ch=parseFloat(el.dataset.o)!==v;S[key]=v;save();
     if(fin){delete el.dataset.o;if(ch){log((key=='target'?'Média de aprovação':'Média de aprovação por unidade')+' alterada para '+v);save()}render()}}
 function unitSel(el){if(el.readOnly)return;setTimeout(()=>{try{el.select()}catch(e){}},0)}
@@ -89,7 +89,7 @@ function unitAsk(i,k){ask('Desejo editar '+(k=='s'?'o começo':'o término')+' d
 function unitSave(i){const u=S.units[i],out={};
     for(const k of ['s','e']){const el=$('#u'+i+k);if(!el||el.readOnly)continue;const v=el.value;if(!v)continue;const iso=v.length==5?unitParse(v):null;if(!iso){toast('Data inválida. Digite dia e mês, ex.: 15/03.');return}if(iso!==u[k])out[k]=iso}
     if(!Object.keys(out).length){delete uEd[i+'s'];delete uEd[i+'e'];render();return}
-    setUnitDates(i,out.s,out.e,'manual');delete uEd[i+'s'];delete uEd[i+'e'];render();toast('Unidade salva!')}
+    const bad=setUnitDates(i,out.s,out.e,'manual');delete uEd[i+'s'];delete uEd[i+'e'];render();toast(bad?'Salvo, mas o término está antes do começo. Confira as datas.':'Unidade salva!')}
 function setUnitDates(i,sIso,eIso,how){const u=S.units[i];if(sIso)u.s=sIso;if(eIso)u.e=eIso;
     log((i+1)+'ª unidade: '+(u.s?'começou em '+dfmt(u.s):'sem início')+' – '+(u.e?'termina em '+dfmt(u.e):'sem término')+(how=='voz'?' (voz)':''));save();
     return !!(u.s&&u.e&&u.e<u.s)}
@@ -244,7 +244,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
         if(/^(nao|deixa|cancela|esquece|para)\b/.test(t))return P('Beleza, deixei pra lá.','Certo, cancelado.');
         if(A.kind=='yes'&&/^(sim|pode|claro|confirm\w*|isso|ok|quero|exato)\b/.test(t))return A.fn();
         if(A.kind=='score'&&x.length&&t.split(' ').length<=5&&!/materia|disciplina|prova|trabalho|atividade|projeto|teste/.test(t))return finishGrade(S.discs.find(d=>d.id==A.d),A.T,A.max,x[0],A.u);
-        if(A.kind=='disc'){const nm0=cap(raw.replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),' ').replace(/^\s*(?:a\s+|o\s+)?(?:mat[ée]ria|disciplina)?\s*(?:d[eao]s?\s+)?/i,'').replace(/[.!?,]+\s*$/,'').trim());if(nm0&&nm0.split(/\s+/).length<=4){const dd=addDisc(nm0);if(dd&&dd.id)return voice(A.raw,dd)}}
+        if(A.kind=='disc'){let tw='';const nm0=cap(raw.replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),' ').replace(/^\s*(?:a\s+|o\s+)?(?:mat[ée]ria|disciplina)?\s*(?:d[eao]s?\s+)?/i,'').replace(/^\s*(prova|teste|atividade|projeto|trabalho)\s+(?:d[eao]s?|em)\s+/i,(m0,w)=>{tw=w.toLowerCase()+' ';return ''}).replace(/[.!?,]+\s*$/,'').trim());if(nm0&&nm0.split(/\s+/).length<=4){const dd=addDisc(nm0);if(dd&&dd.id)return voice(A.raw+(tw?' '+tw.trim():''),dd)}}
         if(A.kind=='date'){const iso=parseDate(t);if(iso)return mkTask(A.d,A.T,iso,A.pts)}}
     const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet|marc|coloc|insir/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|marc|coloc|insir|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t);let d=fd||findDisc(t);{const r=setCmds(raw,n0,t,nm);if(r)return r}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(formal|corporativ|empresarial|profissional)/.test(t)){S.tone='formal';save();log('Jarvis: tom formal');return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
@@ -272,7 +272,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
     const m=n0.match(/(?:cri\w*|cadastr\w*|adicion\w*|acrescent\w*|nov[ao])\s+(?:a\s+|uma\s+)?(?:nova\s+)?(?:materia|disciplina)\s+(?:de\s+|da\s+|do\s+)?(.+)$/);
     if(m){const n=cap(raw.slice(raw.length-m[1].length).replace(new RegExp('[\\s,]*'+rx(S.user.nick)+'[\\s.!?]*$','i'),'').replace(/[\s,]*por favor[\s.!?]*$/i,'').replace(/[.!?]+$/,'').trim());if(!n)return P('Qual é o nome da matéria?','Qual o nome da disciplina?');if(S.discs.some(x=>norm(x.name)==norm(n)))return P(`A matéria ${n} já existe, ${nm}.`,`A disciplina ${n} já está cadastrada.`);addDisc(n);return P(`Pronto, ${nm}! Matéria ${n} adicionada.`,`Disciplina ${n} cadastrada com sucesso.`)}
     const guessDisc=()=>{let m=n0.match(/\b(?:prova|teste|atividade|projeto|trabalho)\s+(?:d[eao]s?|em)\s+(.+?)(?=\s+(?:para|pra|no|na|dia|amanha|hoje|depois|valendo|vale|valia|unidade|semana|daqui|com|que|tem|e)\b|$)/);
-            if(!m)m=n0.match(/\b(?:tirei|tirou|fiz|consegui|peguei|nota)\s+(?:d[eao]\s+)?\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?\s+(?:em|na|no|de|da|do)\s+(?!prova|teste|atividade|projeto|trabalho)(.+?)(?=\s+(?:para|pra|no|na|dia|amanha|hoje|unidade|valendo|vale|valia|com|que|e)\b|$)/);
+            if(!m)m=n0.match(/\b(?:tirei|tirou|fiz|consegui|peguei|nota)\s+(?:d[eao]\s+)?\d+(?:[.,]\d+)?(?:\s*(?:\/|de)\s*\d+(?:[.,]\d+)?)?\s+(?:em|na|no|de|da|do)\s+(?!prova|teste|atividade|projeto|trabalho)(.+?)(?=\s+(?:para|pra|no|na|dia|amanha|hoje|unidade|valendo|vale|valia|com|que|e)\b|$)/);
             if(!m)return null;const i=m.index+m[0].indexOf(m[1]),nme=cap(raw.slice(i,i+m[1].length).replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),'').replace(/[\s,.!?]+$/,'').trim());
             return nme&&nme.length>1&&!/^\d/.test(nme)&&nme.split(/\s+/).length<=4?nme:null},
         autoDisc=()=>{const g=guessDisc();if(!g)return null;const dd=addDisc(g);return dd&&dd.id?dd:null},
@@ -281,7 +281,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
     if(/(apag|remov|exclu|delet)\w*.*(materia|disciplina)/.test(t)){if(!d)return noDisc;if(vp)vp.ask={kind:'yes',fn:()=>{const n=d.name;delDisc(d.id);return P(`Pronto, a matéria ${n} foi excluída.`,`Disciplina ${n} excluída.`)}};return P(`Tem certeza que quer excluir ${d.name} e todas as notas dela?`,`Confirma a exclusão de ${d.name} e de todas as notas?`)}
     if(/(apag|remov|exclu|desfa)\w*.*(ultima|nota)/.test(t)){const g=S.grades.pop();if(!g)return P('Não tem nenhuma nota pra remover.','Não há notas para remover.');log('Nota removida por voz: '+g.name);save();render();return P('Pronto, tirei a última nota.','Última nota removida.')}
     let ty=(t.match(/prova|teste|atividade|projeto|trabalho/)||[''])[0],vm=t.match(/val\w*\s*(\d+(?:\.\d+)?)/),sm=t.match(/(?:tirei|tirou|fiz|consegui|peguei|obtive|ganhei|marquei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)/),date=parseDate(t.replace(/(primeira|segunda|terceira)\s*unidade/g,''));
-    {const fr=t.match(/(?:tirei|tirou|fiz|consegui|peguei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);if(fr){sm=['',fr[1]];vm=['',fr[2]]}}
+    {const fr=t.match(/(?:tirei|tirou|fiz|consegui|peguei|nota)\s*(?:de\s*)?(\d+(?:\.\d+)?)\s*(?:\/|de)\s*(\d+(?:\.\d+)?)/);if(fr){sm=['',fr[1]];vm=['',fr[2]]}}
     if(ty&&date&&!sm){d=d||autoDisc();if(!d)return askDisc();return mkTask(d.id,cap(ty),date,vm?+vm[1]:10)}
     if(ty&&!sm&&!vm&&(/agend|marc|lembr|cri[ae]|tenho|\btem\b|coloc/.test(t)||(/adicion|insir/.test(t)&&!/nota/.test(t)))){d=d||autoDisc();if(!d)return askDisc();const T=cap(ty);if(vp)vp.ask={kind:'date',d:d.id,T,pts:10};return P(`Beleza! Pra quando é ${T.toLowerCase()} de ${d.name}?`,`Para qual data está marcada ${T.toLowerCase()} de ${d.name}?`)}
     if((ty||/nota/.test(t)||sm)&&(sm||/adicion|lanc|registr|coloc|anot|tirei|tirou|fiz|consegui|peguei|marc|insir/.test(t))){d=d||autoDisc();if(!d)return askDisc();const T=cap(ty||'atividade'),
@@ -417,14 +417,13 @@ function speak(t,force,tries){const s=TTS();if(!s||(!S.voice.on&&!force))return;
 const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);
 setInterval(()=>{const s=TTS();if(!IOS&&s&&speaking&&s.speaking){try{s.pause();s.resume()}catch(e){}}},10000);
 function ttsStop(){spkGen++;clearTimeout(spkT);speaking=false;try{const s=TTS();s&&s.cancel()}catch(e){}}
-function voiceOpts(){const L=voices(),cur=pickVoice();return L.length?L.map(v=>`<option value="${esc(v.voiceURI)}" ${cur&&cur.voiceURI==v.voiceURI?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join(''):'<option value="">Voz padrão do aparelho</option>'}
 function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2>${TTS()?`
  <div class="row sp" style="margin-top:12px"><span style="font-weight:600">Falar as respostas</span><button class="sw ${S.voice.on?'on':''}" id="ttsSw" role="switch" aria-checked="${!!S.voice.on}" aria-label="Falar as respostas" onclick="S.voice.on=!S.voice.on;log('Voz do assistente '+(S.voice.on?'ligada':'desligada'));save();if(!S.voice.on)ttsStop();render()"></button></div>
  <label>Estilo de conversa</label><div class=\"seg two ${S.tone=='formal'?'r':''}\" id=\"toneSeg\" style=\"margin-top:6px;width:fit-content\"><i class=\"th\"></i><button class=\"${S.tone!='formal'?'on':''}\" onclick=\"setTone('amigo')\">Amigo</button><button class=\"${S.tone=='formal'?'on':''}\" onclick=\"setTone('formal')\">Formal</button></div>
  <label>Velocidade</label><input type="range" min="0.7" max="1.5" step="0.1" value="${S.voice.rate}" onchange="S.voice.rate=+this.value;save();voiceTest()">
  <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button><p class="sub" id="ttsSt" style="margin-top:8px">${esc(ttsStat||('Vozes encontradas: '+voices().length))}</p>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
 function voiceTest(){ttsMsg('Voz: tentando falar…');ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
-(()=>{const s=TTS();if(!s)return;const up=()=>{const e=$('#vsel');if(e)e.innerHTML=voiceOpts()};try{s.addEventListener('voiceschanged',up)}catch(e){s.onvoiceschanged=up}try{s.getVoices()}catch(e){}})();
+(()=>{const s=TTS();if(!s)return;try{s.getVoices()}catch(e){}})();
 // ao abrir o app bloqueado, o Face ID/biometria é chamado automaticamente
 if(locked&&hasBio())setTimeout(bioUnlock,300);
 

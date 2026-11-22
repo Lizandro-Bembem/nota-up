@@ -1,4 +1,4 @@
-const CACHE='notaup-v4',
+const CACHE='notaup-v5',
     SHELL=['./','index.html','app.js','style.css','manifest.webmanifest','icon-192.png','icon-512.png','icon-maskable-512.png','apple-touch-icon.png','logo.png','logo-dark.png'],
     FONTS=/^(fonts\.googleapis\.com|fonts\.gstatic\.com)$/;
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>{})))).catch(()=>{}))});
