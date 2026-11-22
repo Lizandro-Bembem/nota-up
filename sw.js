@@ -1,4 +1,4 @@
-const CACHE='notaup-v2',SHELL=['./','index.html','app.js','style.css','manifest.webmanifest'];
+const CACHE='notaup-v3',SHELL=['./','index.html','app.js','style.css','manifest.webmanifest'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>Promise.all(SHELL.map(u=>c.add(u).catch(()=>{})))).catch(()=>{}))});
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{const q=e.request,u=new URL(q.url);

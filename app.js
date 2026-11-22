@@ -7,9 +7,9 @@ const IC={home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strok
      no corpo: Olá {{to_name}}, seu código para redefinir a senha do {{app_name}} é {{code}} (vale {{validade}}).
    - publicKey: Account → General → Public Key */
 const EMAILJS={serviceId:'',templateId:'',publicKey:''};
-let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},voice:{on:true,uri:'',rate:1},acts:[],rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
+let S={user:null,discs:[],grades:[],tasks:[],log:[],target:7,targetU:7,units:[{s:'',e:''},{s:'',e:''},{s:'',e:''}],notified:{},notif:false,asked:0,theme:'light',tone:'amigo',sec:{email:'',hash:'',salt:'',cred:'',bio:false},voice:{on:true,uri:'',rate:1},acts:[],rst:null},view='home',tab=1,sheet=null,vp=null,rec=null,keep=false,cb=null,cp={y:0,m:0,sel:''},ph={};
 try{S=Object.assign(S,JSON.parse(localStorage.getItem('notaup')||'{}'))}catch(e){}
-S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);delete S.ai;S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);delete S.voice.kind;S.acts=Array.isArray(S.acts)?S.acts:[];
+S.sec=Object.assign({email:'',hash:'',salt:'',cred:'',bio:false},S.sec);delete S.ai;S.targetU=+S.targetU>0?+S.targetU:7;S.units=[0,1,2].map(i=>Object.assign({s:'',e:''},Array.isArray(S.units)?S.units[i]:{}));S.voice=Object.assign({on:true,uri:'',rate:1},S.voice);delete S.voice.kind;S.acts=Array.isArray(S.acts)?S.acts:[];
 let locked=!!(S.user&&S.sec.hash),lk={msg:'',busy:0,tried:0,pw:0,ac:null,rst:null};
 const save=()=>{try{localStorage.setItem('notaup',JSON.stringify(S))}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,9),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -25,7 +25,7 @@ function overall(){const a=S.discs.map(d=>discAvg(d.id)).filter(x=>x!==null);ret
 function need(d){const u=[1,2,3].map(i=>unitAvg(d,i)),got=u.filter(x=>x!==null),left=3-got.length,sum=got.reduce((a,b)=>a+b,0);
     if(!got.length)return 'Sem notas ainda';const req=S.target*3-sum;if(!left)return req<=0?'Média atingida ✓':'Faltaram '+f(req/3)+' pts na média';
     return req<=0?'Média já garantida ✓':req/left>10?'Não dá mais para atingir a média só com as unidades restantes':'Precisa de '+f(req/left)+' em cada unidade restante'}
-const col=v=>v===null?'':v>=S.target?'ok':'warn';
+const col=v=>v===null?'':v>=S.target?'ok':'warn',colU=v=>v===null?'':v>=S.targetU?'ok':'warn';
 // views
 let pgAnim=1,sheetAnim=0,vpAnim=0,aiWait=0,pgDir=0,goT=0,logAll=false,logAnim=0;const TABS=['home','hist','cal','ativ','cfg'];
 const go=v=>{if(goT)return;const m=$('main'),d=TABS.indexOf(v)>=TABS.indexOf(view)?1:-1;
@@ -64,10 +64,13 @@ function hist(){const g=[...S.grades].sort((a,b)=>a.date<b.date?-1:1);
  <div class="card" style="margin-top:12px"><h2>Notas lançadas</h2>${[...g].reverse().map(x=>`<div class="it"><div class="row sp"><div><b>${esc(x.name)}</b><div class="sub">${esc(dn(x.d))} · ${x.u}ª unidade · ${x.type} · ${dfmt(x.date)}</div></div><span class="pill">${f(x.s)}/${f(x.max)}</span></div></div>`).join('')||'<p class="sub">Nenhuma nota.</p>'}</div>`}
 function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
- <div class="card" style="margin-top:12px"><label style="margin:0">Média para aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
+ <div class="card" style="margin-top:12px"><label style="margin:0">Média de Aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
+ <label>Média de Aprovação por Unidade</label><input type="number" step="0.5" value="${S.targetU}" onchange="S.targetU=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação por unidade alterada para '+S.targetU);save();render()">
+ ${[0,1,2].map(i=>`<div class="ur"><b>${i+1}ª Unidade</b><div class="row" style="margin-top:6px"><div style="flex:1"><label style="margin-top:0">Começou em</label><input type="date" value="${esc(S.units[i].s)}" onchange="setUnitDate(${i},'s',this.value)"></div><div style="flex:1"><label style="margin-top:0">Termina em</label><input type="date" value="${esc(S.units[i].e)}" onchange="setUnitDate(${i},'e',this.value)"></div></div>${S.units[i].s||S.units[i].e?`<div class="sub" style="margin-top:6px">${i+1}ª Unidade: começou em ${S.units[i].s?dfmt(S.units[i].s):'XX/XX/XXXX'} – termina em ${S.units[i].e?dfmt(S.units[i].e):'XX/XX/XXXX'}</div>`:''}</div>`).join('')}
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
  <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${voiceCard()}
  <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${logList()}</div>`}
+function setUnitDate(i,k,v){S.units[i][k]=v;const u=S.units[i];if(u.s&&u.e&&u.e<u.s){toast('A data de término está antes do início.')}log((i+1)+'ª unidade: '+(k=='s'?'início':'término')+' em '+(v?dfmt(v):'(vazio)'));save();render()}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
 const closeSheet=()=>{sheet=null;render()};
@@ -75,7 +78,7 @@ function openSheet(h){sheetAnim=!sheet;sheet=`<div class="sheet" onclick="if(eve
 function sheetDisc(){openSheet(`<h2>Nova disciplina</h2><label>Nome</label><input class="ac" autocapitalize="sentences" id="dn" placeholder="Ex.: Matemática"><div class="row" style="margin-top:16px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Sair</button><button class="btn" style="flex:1" onclick="addDisc($('#dn').value)">Salvar</button></div>`)}
 function openDisc(id){const d=S.discs.find(x=>x.id==id);
     openSheet(`<div class="row sp"><h2>${esc(d.name)}</h2><button class="btn sm alt" onclick="ask('Excluir esta disciplina e todas as notas?',()=>delDisc('${id}'),'Excluir')">Excluir</button></div><div class="tab">${[1,2,3].map(u=>`<button class="${tab==u?'on':''}" onclick="tab=${u};openDisc('${id}')">${u}ª unidade</button>`).join('')}</div>
- <div class="card"><div class="sub">Média da unidade</div><div class="big ${col(unitAvg(id,tab))}">${unitAvg(id,tab)===null?'–':f(unitAvg(id,tab))}</div></div>
+ <div class="card"><div class="sub">Média da unidade</div><div class="big ${colU(unitAvg(id,tab))}">${unitAvg(id,tab)===null?'–':f(unitAvg(id,tab))}</div></div>
  <div class="card" style="margin-top:12px"><div class="sub">Média final</div><b style="font-size:22px">${discAvg(id)===null?'–':f(discAvg(id))}</b><div class="sub">${need(id)}</div></div>
  ${S.grades.filter(g=>g.d==id&&g.u==tab).map(g=>`<div class="it row sp"><div><b>${esc(g.name)}</b><div class="sub">${g.type} · ${dfmt(g.date)}</div></div><div class="row"><span class="pill">${f(g.s)}/${f(g.max)}</span><button class="btn sm alt" onclick="delGrade('${g.id}','${id}')">✕</button></div></div>`).join('')}
  <div class="row" style="margin-top:14px"><button class="btn alt" style="flex:1" onclick="closeSheet()">Sair</button><button class="btn" style="flex:1" onclick="sheetGrade('${id}')">+ Adicionar Nota</button></div>`)}
@@ -305,6 +308,7 @@ function unlock(how){locked=false;lkReset();log('Entrada no app ('+how+')');save
 function lockNow(){if(!S.sec.hash)return;if(vp){keep=false;ttsStop();try{rec&&rec.abort()}catch(e){}vp=null}sheet=null;locked=true;lkReset();render();if(hasBio())setTimeout(bioUnlock,250)}
 const LOCK_MS=2*60*1000;let hidAt=0;
 document.addEventListener('visibilitychange',()=>{if(document.hidden){hidAt=Date.now();return}
+    if(!app.firstElementChild)render();
     if(S.user&&S.sec.hash&&!locked&&hidAt&&Date.now()-hidAt>LOCK_MS)return lockNow();
     if(locked&&hasBio()&&!lk.busy&&!lk.pw&&!lk.rst)return setTimeout(bioUnlock,250);remind()});
 // recuperação de senha por e-mail (EmailJS)
@@ -360,22 +364,32 @@ const TTS=()=>window.speechSynthesis||null;
 function voices(){const s=TTS();if(!s)return [];const all=s.getVoices()||[],pt=all.filter(v=>/^pt/i.test(v.lang));return pt.length?pt:all}
 function pickVoice(){const L=voices();return L.find(v=>v.voiceURI==S.voice.uri)||L.find(v=>/pt[-_]BR/i.test(v.lang))||L[0]||null}
 // iPhone/Safari só deixa falar depois de um toque do usuário: este "desbloqueio" é feito no toque do microfone/enviar
-function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{const u=new SpeechSynthesisUtterance('.');u.volume=0;u.lang='pt-BR';uttRef.push(u);s.speak(u);ttsOK=true}catch(e){}}
+function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{try{s.resume()}catch(e){}const u=new SpeechSynthesisUtterance(' ');u.volume=0;u.lang='pt-BR';u.onend=u.onerror=()=>{};uttRef.push(u);s.speak(u);ttsOK=true}catch(e){}}
+// qualquer toque/clique no app destrava a fala (Safari/iOS só deixa falar depois de um gesto do usuário)
+['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>ttsUnlock(),{capture:true,passive:true}));
 const ttsClean=t=>String(t).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'').replace(/[“”"]/g,'').replace(/\s+/g,' ').trim();
 function ttsChunks(t){const out=[];let cur='';for(const p of (t.match(/[^.!?;:]+[.!?;:]*\s*/g)||[t]).map(x=>x.trim()).filter(Boolean)){if(cur&&(cur+' '+p).length>180){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
 const uttRef=[];
 function speak(t,force,tries){const s=TTS();if(!s||(!S.voice.on&&!force))return;const txt=ttsClean(t),parts=ttsChunks(txt);if(!parts.length)return;
-    const gen=++spkGen,hadRec=!!(rec&&running);try{s.cancel()}catch(e){}speaking=true;vpaint();if(hadRec){try{rec.abort()}catch(e){}running=false}
-    const q=vParams(),v=q.v,rate=Math.max(.5,Math.min(2,(S.voice.rate||1)*q.r)),started=[0],
+    const gen=++spkGen,hadRec=!!(rec&&running),busy=!!(s.speaking||s.pending);
+    // cancel() seguido de speak() no mesmo instante é engolido pelo Safari/Chrome: só cancela se preciso e espera um pouco
+    if(busy){try{s.cancel()}catch(e){}}speaking=true;vpaint();if(hadRec){try{rec.abort()}catch(e){}running=false}
+    const plain=tries>0,q=vParams(),v=plain?null:q.v,rate=Math.max(.5,Math.min(2,(S.voice.rate||1)*q.r)),started=[0],
         done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;uttRef.length=0;vpaint();if(keep&&vp){running=false;recLater(450)}};
-    const go=()=>{if(gen!==spkGen)return;try{if(s.paused)s.resume()}catch(e){}uttRef.length=0;
+    const go=()=>{if(gen!==spkGen)return;try{s.resume()}catch(e){}uttRef.length=0;
         parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;u.pitch=q.p;u.volume=1;uttRef.push(u);
-            if(i==0)u.onstart=()=>{started[0]=1};if(i==parts.length-1){u.onend=done;u.onerror=ev=>{if(ev&&(ev.error=='canceled'||ev.error=='interrupted')&&gen!==spkGen)return;done()}}s.speak(u)});
-        if(!(tries>0))setTimeout(()=>{if(gen===spkGen&&speaking&&!started[0]&&!s.speaking){try{s.cancel()}catch(e){}speak(t,force,1)}},1200)};
-    clearTimeout(spkT);spkT=setTimeout(done,txt.length*90/rate+3000);
-    if(hadRec)setTimeout(go,150);else go()}
+            if(i==0)u.onstart=()=>{started[0]=1};
+            if(i==parts.length-1){u.onend=done;u.onerror=ev=>{if(ev&&(ev.error=='canceled'||ev.error=='interrupted')&&gen!==spkGen)return;if(ev&&ev.error=='not-allowed'&&force)toast('O navegador bloqueou a voz. Toque na tela e tente de novo.');done()}}
+            s.speak(u)});
+        // se não começou em ~1,5 s, tenta de novo com a voz padrão do aparelho
+        setTimeout(()=>{if(gen!==spkGen||!speaking||started[0])return;try{s.cancel()}catch(e){}
+            if(!(tries>0))setTimeout(()=>speak(t,force,1),120);
+            else{speaking=false;vpaint();if(force)toast('Não consegui reproduzir a voz. Confira o volume e se o modo silencioso está desligado.')}},1500)};
+    clearTimeout(spkT);spkT=setTimeout(done,txt.length*90/rate+4000);
+    if(!hadRec&&!busy)go();else setTimeout(go,hadRec?200:90)}
 // Chrome para a fala depois de ~15 s: "cutuca" a síntese enquanto fala
-setInterval(()=>{const s=TTS();if(s&&speaking&&s.speaking){try{s.pause();s.resume()}catch(e){}}},10000);
+const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);
+setInterval(()=>{const s=TTS();if(!IOS&&s&&speaking&&s.speaking){try{s.pause();s.resume()}catch(e){}}},10000);
 function ttsStop(){spkGen++;clearTimeout(spkT);speaking=false;try{const s=TTS();s&&s.cancel()}catch(e){}}
 function voiceOpts(){const L=voices(),cur=pickVoice();return L.length?L.map(v=>`<option value="${esc(v.voiceURI)}" ${cur&&cur.voiceURI==v.voiceURI?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join(''):'<option value="">Voz padrão do aparelho</option>'}
 function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz do assistente</h2>${TTS()?`
@@ -406,7 +420,8 @@ function sugg(tx){const L=[],late=S.tasks.some(t=>!t.graded&&daysTo(t.date)<0);i
 let actDraft='',actImg='',actThumb='',actBusy='',actErr='',ocrP=null;
 const gUrl=q=>'https://www.google.com/search?q='+encodeURIComponent(String(q).replace(/\s+/g,' ').trim().slice(0,300));
 const draw=()=>{if(view=='ativ'&&!locked&&S.user)render()};
-function openG(url){let w=null;try{w=window.open(url,'_blank')}catch(e){}if(w){try{w.opener=null}catch(e){}}return !!w}
+// link real (<a target=_blank>) em vez de window.open: no iPhone/PWA o window.open abria uma janela em branco que ficava presa
+function openG(url){try{const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),1000);return true}catch(e){return false}}
 function actList(){if(!S.acts.length)return '';return `<div class="card" style="margin-top:12px"><h2>Pesquisas anteriores</h2>${S.acts.map(a=>`<div class="it"><div class="sub">${new Date(a.t).toLocaleString('pt-BR')}</div>${a.th?`<img class="athumb" src="${a.th}" alt="Foto enviada">`:''}<p style="margin-top:6px"><b>${esc(a.q)}</b></p><div class="row" style="margin-top:8px;flex-wrap:wrap"><a class="btn sm" style="text-decoration:none;text-align:center" href="${esc(a.g||gUrl(a.q))}" target="_blank" rel="noopener">🔎 Abrir no Google</a><button class="btn sm alt" onclick="ask('Apagar esta pesquisa?',()=>actDel('${a.id}'),'Apagar')">Apagar</button></div></div>`).join('')}</div>`}
 function ativ(){const last=S.acts[0];return `<h1>Atividades</h1><p class="sub">Tire uma foto, escolha da galeria ou cole a atividade. O app abre o Google já pesquisando.</p><div class="card" style="margin-top:14px">
  <label style="margin-top:0">Atividade ou pergunta</label><textarea id="actT" rows="4" placeholder="Cole ou digite a atividade…" oninput="actDraft=this.value">${esc(actDraft)}</textarea>
@@ -427,11 +442,12 @@ async function ocrRead(img){await loadOcr();const w=await Tesseract.createWorker
 function actSave(txt,th){const e={id:uid(),t:Date.now(),q:txt.slice(0,300),th:th||'',g:gUrl(txt)};S.acts.unshift(e);S.acts=S.acts.slice(0,20);log('Atividade pesquisada no Google'+(th?' (com foto)':''));save();return e}
 async function actSend(){if(actBusy)return;let txt=(actDraft||'').trim();const img=actImg,th=actThumb;
     if(!txt&&!img)return toast('Escreva ou cole a atividade, ou tire uma foto.');
-    if(txt){const e=actSave(txt,'');const ok=openG(e.g);actErr=ok?'':'O navegador bloqueou a abertura do Google. Toque em “Abrir no Google” abaixo.';draw();return}
+    if(txt){const e=actSave(txt,'');openG(e.g);actErr='';draw();return}
     actErr='';actBusy='Lendo a foto…';draw();
     try{txt=await ocrRead(img);if(!txt)throw new Error('Não consegui ler texto nessa foto. Tente com mais luz e a folha reta, ou escreva a atividade.');
-        actDraft=txt;const e=actSave(txt,th);actImg='';actThumb='';actBusy='';const ok=openG(e.g);actErr=ok?'':'Pronto! Toque em “Abrir no Google” para ver a resposta.';draw()}
+        actDraft=txt;const e=actSave(txt,th);actImg='';actThumb='';actBusy='';actErr='Pronto! Toque em “Abrir no Google” para ver a resposta.';draw()}
     catch(e){actBusy='';actErr=String(e&&e.message||e);draw();toast(actErr)}}
 function actDel(id){S.acts=S.acts.filter(x=>x.id!=id);log('Pesquisa de atividade apagada');save();render()}
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 save();render();remind();setInterval(remind,60000);
+window.addEventListener('pageshow',e=>{if(!app.firstElementChild)render()});

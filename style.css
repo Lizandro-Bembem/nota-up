@@ -146,3 +146,4 @@ textarea{width:100%;padding:13px 14px;border-radius:14px;border:1.5px solid var(
 .ans{white-space:pre-wrap;line-height:1.5;font-size:14.5px;margin-top:6px}
 .btn:disabled{opacity:.6;cursor:default}
 nav button{font-size:10.5px;padding:6px 2px}
+.ur{margin-top:14px;padding-top:12px;border-top:1px solid var(--sand)}.ur input[type=date]{min-width:0;padding:11px 10px;font-size:15px}
