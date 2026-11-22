@@ -66,19 +66,27 @@ function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
  <div class="card" style="margin-top:12px"><label style="margin:0">Média de Aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
  <label>Média de Aprovação por Unidade</label><input type="number" step="0.5" value="${S.targetU}" onchange="S.targetU=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação por unidade alterada para '+S.targetU);save();render()">
- ${[0,1,2].map(i=>`<div class="ur"><b>${i+1}ª Unidade</b><div class="uf"><label class="ul"><span>Começou em</span><input inputmode="numeric" autocomplete="off" maxlength="10" placeholder="__/__/____" value="${S.units[i].s?dfmt(S.units[i].s):''}" oninput="unitMask(this);unitSet(${i},'s',this,1)" onchange="unitSet(${i},'s',this)"></label><label class="ul"><span>Termina em</span><input inputmode="numeric" autocomplete="off" maxlength="10" placeholder="__/__/____" value="${S.units[i].e?dfmt(S.units[i].e):''}" oninput="unitMask(this);unitSet(${i},'e',this,1)" onchange="unitSet(${i},'e',this)"></label></div></div>`).join('')}
+ ${[0,1,2].map(unitBox).join('')}
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
  <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${voiceCard()}
  <div class="card" style="margin-top:12px"><div class="row sp"><h2>Auditoria</h2><button class="lnk" onclick="ask('Apagar todos os seus dados?',()=>{localStorage.removeItem('notaup');location.reload()},'Apagar')">Apagar meus dados</button></div><p class="sub">Tudo o que foi feito no app.</p>${logList()}</div>`}
-function unitMask(el){const d=el.value.replace(/\D/g,'').slice(0,8);el.value=d.length>4?d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4):d.length>2?d.slice(0,2)+'/'+d.slice(2):d}
-function unitSet(i,k,el,live){const v=el.value.trim(),u=S.units[i];
-    if(!v){if(live)return;u[k]='';save();return}
-    if(v.length<10){if(!live){toast('Digite a data completa: dia/mês/ano.');el.value=u[k]?dfmt(u[k]):''}return}
-    const [dd,mm,yy]=v.split('/').map(Number),dt=new Date(yy,mm-1,dd);
-    if(!(yy>=2000&&yy<=2100)||dt.getFullYear()!=yy||dt.getMonth()!=mm-1||dt.getDate()!=dd){if(!live){toast('Data inválida.');el.value=u[k]?dfmt(u[k]):''}return}
-    const iso=ymd(dt);if(u[k]===iso)return;u[k]=iso;
-    if(u.s&&u.e&&u.e<u.s)toast('A data de término está antes do início.');
-    log((i+1)+'ª unidade: '+(k=='s'?'início':'término')+' em '+v);save()}
+// ---- datas das unidades: o ano é o atual; digita só dia/mês; "Salvar" aparece ao digitar; toque numa data salva para editar ----
+let uEd={};
+const curY=()=>new Date().getFullYear();
+function unitBox(i){const f=(k,lab)=>{const sv=S.units[i][k],lock=!!sv&&!uEd[i+k];
+    return `<label class="ul ${lock?'lk':''}" ${lock?`onclick="event.preventDefault();unitAsk(${i},'${k}')"`:''}><span>${lab}</span><input id="u${i}${k}" inputmode="numeric" autocomplete="off" maxlength="${lock?10:5}" placeholder="__/__" ${lock?'readonly tabindex="-1"':''} value="${sv?(lock?dfmt(sv):dfmt(sv).slice(0,5)):''}" oninput="unitMask(this);unitChk(${i})"></label>`};
+    return `<div class="ur"><b>${i+1}ª Unidade</b><div class="uf">${f('s','Começou em')}${f('e','Termina em')}</div><button class="btn sm" id="usv${i}" style="display:none;margin-top:8px" onclick="unitSave(${i})">Salvar</button></div>`}
+function unitMask(el){const d=el.value.replace(/\D/g,'').slice(0,4);el.value=d.length>2?d.slice(0,2)+'/'+d.slice(2):d}
+function unitParse(v,y){const m=String(v).match(/^(\d{2})\/(\d{2})$/);if(!m)return null;const dd=+m[1],mm=+m[2],yy=y||curY(),dt=new Date(yy,mm-1,dd,12);return dt.getFullYear()==yy&&dt.getMonth()==mm-1&&dt.getDate()==dd?ymd(dt):null}
+function unitChk(i){let show=false;['s','e'].forEach(k=>{const el=$('#u'+i+k);if(!el||el.readOnly)return;const v=el.value;if(v.length==5){const iso=unitParse(v);if(iso&&iso!==S.units[i][k])show=true}});const b=$('#usv'+i);if(b)b.style.display=show?'block':'none'}
+function unitAsk(i,k){ask('Desejo editar '+(k=='s'?'o começo':'o término')+' da '+(i+1)+'ª Unidade?',()=>{uEd[i+k]=1;render();const e=$('#u'+i+k);if(e){e.focus();try{e.setSelectionRange(e.value.length,e.value.length)}catch(x){}}},'Editar')}
+function unitSave(i){const u=S.units[i],out={};
+    for(const k of ['s','e']){const el=$('#u'+i+k);if(!el||el.readOnly)continue;const v=el.value;if(!v)continue;const iso=v.length==5?unitParse(v):null;if(!iso){toast('Data inválida. Digite dia e mês, ex.: 15/03.');return}if(iso!==u[k])out[k]=iso}
+    if(!Object.keys(out).length){delete uEd[i+'s'];delete uEd[i+'e'];render();return}
+    setUnitDates(i,out.s,out.e,'manual');delete uEd[i+'s'];delete uEd[i+'e'];render();toast('Unidade salva!')}
+function setUnitDates(i,sIso,eIso,how){const u=S.units[i];if(sIso)u.s=sIso;if(eIso)u.e=eIso;
+    log((i+1)+'ª unidade: '+(u.s?'começou em '+dfmt(u.s):'sem início')+' – '+(u.e?'termina em '+dfmt(u.e):'sem término')+(how=='voz'?' (voz)':''));save();
+    return !!(u.s&&u.e&&u.e<u.s)}
 // sheets
 const dopts=sel=>S.discs.map(d=>`<option value="${d.id}" ${d.id==sel?'selected':''}>${esc(d.name)}</option>`).join('');
 const closeSheet=()=>{sheet=null;render()};
@@ -141,7 +149,7 @@ function setNotif(on){S.asked=1;if(!on){S.notif=false;log('Notificações desati
 // voz
 // ---------- v3: tema, logo, foto por gestos, voz fluida ----------
 const LG=()=>`<img src="${S.theme=='dark'?'logo-dark.png':'logo.png'}" alt="">`;
-function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme=='dark'?'dark':'light')}
+function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme=='dark'?'dark':'light');document.querySelectorAll('meta[name=theme-color]').forEach(m=>m.setAttribute('content',S.theme=='dark'?'#393B35':'#F7F5F0'))}
 function segSet(id,right){const g=document.getElementById(id);if(!g)return;g.classList.toggle('r',!!right);g.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',(i==1)==!!right))}
 function setTheme(t){if(S.theme==t)return;S.theme=t;log('Tema alterado para '+(t=='dark'?'escuro':'claro'));save();applyTheme();document.querySelectorAll('.logo img').forEach(i=>i.src=t=='dark'?'logo-dark.png':'logo.png');segSet('thSeg',t=='dark')}
 function setTone(t){if(S.tone==t)return;S.tone=t;log('Estilo de conversa: '+t);save();segSet('toneSeg',t=='formal')}
@@ -232,7 +240,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
         if(A.kind=='score'&&x.length&&t.split(' ').length<=5&&!/materia|disciplina|prova|trabalho|atividade|projeto|teste/.test(t))return finishGrade(S.discs.find(d=>d.id==A.d),A.T,A.max,x[0],A.u);
         if(A.kind=='disc'){const nm0=cap(raw.replace(new RegExp('\\b'+rx(S.user.nick)+'\\b','ig'),' ').replace(/^\s*(?:a\s+|o\s+)?(?:mat[ée]ria|disciplina)?\s*(?:d[eao]s?\s+)?/i,'').replace(/[.!?,]+\s*$/,'').trim());if(nm0&&nm0.split(/\s+/).length<=4){const dd=addDisc(nm0);if(dd&&dd.id)return voice(A.raw,dd)}}
         if(A.kind=='date'){const iso=parseDate(t);if(iso)return mkTask(A.d,A.T,iso,A.pts)}}
-    const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet|marc|coloc|insir/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|marc|coloc|insir|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t);let d=fd||findDisc(t);
+    const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet|marc|coloc|insir/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|marc|coloc|insir|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t);let d=fd||findDisc(t);{const r=setCmds(raw,n0,t,nm);if(r)return r}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(formal|corporativ|empresarial|profissional)/.test(t)){S.tone='formal';save();log('Jarvis: tom formal');return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(amig|descontra|informal|casual)/.test(t)){S.tone='amigo';save();log('Jarvis: tom de amigo');return `Fechou, ${nm}! Agora a gente conversa como amigos.`}
     if(/(mud|alter|troc|defin)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
@@ -251,7 +259,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
     if(!cmd){
         if(/obrigad|valeu|brigad/.test(t))return P(`Por nada, ${nm}! Tamo junto.`,'Disponha. Estou à disposição.');
         if(/tudo bem|como (voce|vc) (esta|ta|vai)|como vai/.test(t))return P('Tudo ótimo por aqui! E você, como tá? O que vamos resolver hoje?','Estou bem, obrigado por perguntar. Em que posso ajudá-lo?');
-        if(/quem (e|eh) voce|seu nome|o que voce faz|ajuda|o que (voce )?sabe/.test(t))return P(`Sou o ${S.user.nick}, seu parceiro do NotaUp! Lanço notas, crio matérias e tarefas, calculo médias, digo quanto falta pra passar e te aviso do que tá pendente. É só pedir.`,`Sou ${S.user.nick}, assistente do NotaUp. Registro notas, cadastro disciplinas e tarefas, calculo médias, informo quanto falta para aprovação e as pendências.`);
+        if(/quem (e|eh) voce|seu nome|o que voce faz|ajuda|o que (voce )?sabe/.test(t))return P(`Sou o ${S.user.nick}, seu parceiro do NotaUp! Lanço notas, crio matérias e tarefas, calculo médias, mudo tema, voz, estilo de conversa, médias e datas das unidades, e até meu apelido. É só pedir.`,`Sou ${S.user.nick}, assistente do NotaUp. Registro notas, cadastro disciplinas e tarefas, calculo médias, informo quanto falta para aprovação e as pendências.`);
         {const gr=t.match(/bom dia|boa tarde|boa noite/);if(gr)return P(`${cap(gr[0])}, ${nm}! Tudo bem? O que temos para hoje?`,`${cap(gr[0])}, ${nm}. Em que posso ajudá-lo hoje?`)}
         if(t===''||/\b(oi|ola|e ai|opa|ei|alo|fala|salve|hey)\b/.test(t))return P(`Oi, ${nm}! E aí, tudo bem? O que temos para hoje?`,`Olá, ${nm}. Como posso ajudar?`)}
     if(!cmd)return SCOPE();
@@ -459,3 +467,80 @@ function actDel(id){S.acts=S.acts.filter(x=>x.id!=id);log('Pesquisa de atividade
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 save();render();remind();setInterval(remind,60000);
 window.addEventListener('pageshow',e=>{if(!app.firstElementChild)render()});
+
+// ================= assistente controla o app: configurações, tema, voz, unidades =================
+function setCmds(raw,n0,t,nm){
+    const chg=/\b(mud\w*|troc\w*|alter\w*|defin\w*|coloc\w*|ajust\w*|edit\w*|atualiz\w*|bot[ae]\w*|pass[ae]\w*|quer\w*|pon\w*|deix\w*|volt\w*|renome\w*)\b/.test(t),
+        strong=/\b(mud\w*|troc\w*|alter\w*|ativ\w*|lig\w*|pon\w*|deix\w*|bot[ae]\w*|colo\w*)\b/.test(t),
+        tail=(m,src)=>{src=src||raw;return src.slice(src.length-m[1].length).replace(/[\s,.!?]*(?:por favor)?[\s,.!?]*$/i,'').replace(/^[\s"“'‘]+|["”'’\s]+$/g,'').trim()},
+        title=x=>x.split(/\s+/).map(cap).join(' ');
+    // --- apelido do assistente / nome do usuário
+    {const ai=/\b(seu|teu)\s+(apelido|nome)\b|apelido\s+(do\s+app|do\s+assistente|dele)|\bte\s+cham\w+|\bchamar\s+(voce|vc)\b/.test(n0),
+        me=/\bmeu\s+nome\b|\bme\s+cham(e|a|ar|em)\b/.test(n0);
+        if(ai||me){let m=n0.match(/(?:apelido|nome)(?:\s+(?:do\s+app|do\s+assistente|dele))?\b.*?\b(?:para|pra|como)\s+(.+)$/)||n0.match(/\b(?:te\s+cham\w+|chamar\s+(?:voce|vc)|me\s+cham\w+)\s+(?:de|como)\s+(.+)$/)||n0.match(/(?:apelido|nome)\s+(?:agora\s+)?(?:e|sera|seja)\s+(.+)$/);
+            if(m){const nn=tail(m);if(nn&&nn.length<=24&&nn.split(/\s+/).length<=3){
+                if(ai&&!/\bme\s+cham/.test(n0)){if(norm(nn)==norm(S.user.nick))return P(`Eu já me chamo ${S.user.nick}, ${nm}!`,`Meu apelido já é ${S.user.nick}.`);const o=S.user.nick;S.user.nick=title(nn);log('Apelido do app alterado de '+o+' para '+S.user.nick+' (voz)');save();render();return P(`Fechado! Agora pode me chamar de ${S.user.nick}.`,`Apelido alterado para ${S.user.nick}. A partir de agora responderei por esse nome.`)}
+                S.user.name=title(nn);log('Nome do usuário alterado para '+S.user.name+' (voz)');save();render();return P(`Pronto, ${fn1()}! Vou te chamar assim.`,`Nome alterado para ${S.user.name}.`)}}}}
+    // --- datas das unidades
+    {const um=t.match(/\b(primeira|segunda|terceira|1|2|3)\s*[aºª]?\s*unidade\b/)||t.match(/\bunidade\s*(\d)\b/),
+        ks=t.search(/\b(comec\w*|inici\w*|abre|abertura|abrir)\b/),ke=t.search(/\b(termin\w*|acab\w*|fim|encerr\w*|final\w*|fecha\w*)\b/),
+        rg=t.match(/\bde\s+(.+?)\s+(?:ate|a)\s+(.+)$/);
+        if(um&&(ks>=0||ke>=0||(rg&&/\b(vai|vale|dura|periodo|datas?)\b/.test(t)))&&!/tirei|tirou|nota\b/.test(t)){
+            const ui={primeira:0,segunda:1,terceira:2,'1':0,'2':1,'3':2}[um[1]];
+            if(ui!==undefined){const n=ui+1,u=S.units[ui];
+                if(/\b(quando|que dia|qual)\b/.test(t)&&!/\d/.test(t.replace(um[0],''))){if(!u.s&&!u.e)return P(`Ainda não tem data na ${n}ª unidade. É só me dizer quando começa e termina.`,`A ${n}ª unidade não possui datas cadastradas.`);return P(`A ${n}ª unidade ${u.s?'começou em '+dfmt(u.s):''}${u.s&&u.e?' e ':''}${u.e?'termina em '+dfmt(u.e):''}.`,`${n}ª unidade: ${u.s?'início em '+dfmt(u.s):''}${u.s&&u.e?', ':''}${u.e?'término em '+dfmt(u.e):''}.`)}
+                const rest=t.replace(um[0],' '),MESR='janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro',
+                    dm=x=>{if(!x)return null;const now=new Date();let m,dd,mm,yy;
+                        if(m=x.match(/(\d{1,2})\s*[\/-]\s*(\d{1,2})(?:\s*[\/-]\s*(\d{2,4}))?/)){dd=+m[1];mm=+m[2]-1;yy=m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):0}
+                        else if(m=x.match(new RegExp('(\\d{1,2})\\s*(?:de\\s+)?('+MESR+')(?:\\s*(?:de\\s*)?(\\d{4}))?'))){dd=+m[1];mm=MES[m[2]];yy=m[3]?+m[3]:0}
+                        else if(m=x.match(/\bdia\s*(\d{1,2})\b/)){dd=+m[1];mm=now.getMonth();yy=0}
+                        else{const iso=parseDate(x);return iso||null}
+                        yy=yy||curY();const dt=new Date(yy,mm,dd,12);return dt.getFullYear()==yy&&dt.getMonth()==mm&&dt.getDate()==dd?ymd(dt):null};
+                let sIso=null,eIso=null;
+                if(ks>=0||ke>=0){const rs=t.replace(um[0],' ');const ps=rs.search(/\b(comec\w*|inici\w*|abre|abertura|abrir)\b/),pe=rs.search(/\b(termin\w*|acab\w*|fim|encerr\w*|final\w*|fecha\w*)\b/);
+                    if(ps>=0)sIso=dm(pe>ps?rs.slice(ps,pe):rs.slice(ps));if(pe>=0)eIso=dm(ps>pe?rs.slice(pe,ps):rs.slice(pe))}
+                else if(rg){const r2=rest.match(/\bde\s+(.+?)\s+(?:ate|a)\s+(.+)$/);if(r2){sIso=dm(r2[1]);eIso=dm(r2[2])}}
+                if(!sIso&&!eIso)return P('Não peguei a data. Diga o dia e o mês, tipo “a primeira unidade começa dia 10 de fevereiro”.','Não identifiquei a data. Informe dia e mês, por exemplo: 10 de fevereiro.');
+                const bad=setUnitDates(ui,sIso,eIso,'voz');render();
+                const part=(sIso?`começa em ${dfmt(sIso)}`:'')+(sIso&&eIso?' e ':'')+(eIso?`termina em ${dfmt(eIso)}`:'');
+                return P(`Feito! A ${n}ª unidade ${part}.`+(bad?' Só reparei que o término ficou antes do começo, confere aí.':''),`${n}ª unidade atualizada: ${part}.`+(bad?' Atenção: o término está antes do início.':''))}}}
+    // --- média de aprovação por unidade
+    if(/\bmedia\b/.test(t)&&/\bunidades?\b/.test(t)&&!/tirei|tirou|\bnota\b/.test(t)&&!/\b(primeira|segunda|terceira)\b/.test(t)){
+        const x=num(t);
+        if(chg&&x.length){const v=x[x.length-1];if(v>0&&v<=10){S.targetU=v;log('Média de aprovação por unidade alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média por unidade é ${f(v)}.`,`Média de aprovação por unidade alterada para ${f(v)}.`)}return P('Essa média precisa ficar entre 0 e 10.','A média deve estar entre 0 e 10.')}
+        if(/aprov|por unidade|cada unidade/.test(t))return P(`A média de aprovação por unidade tá em ${f(S.targetU)}.`,`A média de aprovação por unidade é ${f(S.targetU)}.`)}
+    // --- estilo de conversa (amigo / formal)
+    {const tk=[...t.matchAll(/\b(formal|corporativ\w*|profissional|empresarial|informal|amig\w*|descontra\w*|casual)\b/g)];
+        if(tk.length&&/\b(estilo|tom|jeito|modo|conversa\w*|linguagem|fal\w*|seja|ser|fique|responda|mud\w*|troc\w*|alter\w*|quer\w*|passa\w*|volt\w*)\b/.test(t)&&!/\b(nota|materia|disciplina|prova|trabalho|atividade|projeto|teste)\b/.test(t)){
+            const w=tk[tk.length-1][1],formal=/^(formal|corporativ|profissional|empresarial)/.test(w);
+            if(formal){S.tone='formal';save();log('Estilo de conversa: formal (voz)');render();return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
+            S.tone='amigo';save();log('Estilo de conversa: amigo (voz)');render();return `Fechou, ${nm}! Agora a gente conversa como amigos.`}}
+    // --- tema claro / escuro
+    {const kw=[...t.matchAll(/\b(escur\w*|noturn\w*|dark|claro|branco|light)\b/g)],
+        byWord=/\b(tema|modo|aparencia|visual)\b/.test(t)&&chg,
+        byTo=strong&&/\b(?:para|pra)\s+(?:o\s+)?(?:modo\s+|tema\s+)?(?:escur\w*|noturn\w*|dark|claro|branco|light)\b/.test(t);
+        if(byWord||byTo){let to=null;if(kw.length){const w=kw[kw.length-1][1];to=/^(escur|noturn|dark)/.test(w)?'dark':'light'}else to=S.theme=='dark'?'light':'dark';
+            if(S.theme==to)return P(`Já tá no modo ${to=='dark'?'escuro':'claro'}, ${nm}!`,`O modo ${to=='dark'?'escuro':'claro'} já está ativado.`);
+            setTheme(to);render();return P(`Pronto, modo ${to=='dark'?'escuro':'claro'} ligado.`,`Modo ${to=='dark'?'escuro':'claro'} ativado.`)}}
+    // --- voz do assistente (ligar/desligar/velocidade)
+    if(/\b(desativ\w*|deslig\w*|desabilit\w*|silenci\w*)\b.*\b(voz|fala\w*|som)\b|\b(pare|para|chega)\s+de\s+fal\w*|\bfique\s+(calado|mudo|quieto)\b|\bsem\s+voz\b|\bso\s+texto\b/.test(t)){S.voice.on=false;ttsStop();log('Voz do assistente desligada (voz)');save();render();return P('Beleza, vou responder só por texto.','Voz desativada. Responderei apenas por texto.')}
+    if(/\b(ativ\w*|lig\w*|habilit\w*|volt\w*)\b.*\bvoz\b|\bvoz\b.*\b(ativ|lig|volt)\w*|\b(volt\w*|comec\w*)\s+a\s+fal\w*|\bfale\s+as\s+respostas\b/.test(t)){S.voice.on=true;log('Voz do assistente ligada (voz)');save();render();return P('Voz ligada! Agora eu falo com você.','Voz ativada.')}
+    if(/\b(fal\w*|velocidade|voz)\b/.test(t)&&/\bmais\s+(rapid\w*|depressa|veloz)\b|\bacelera\w*|\bmais\s+(devagar|lent\w*)\b|\bdesacelera\w*|\bvelocidade\s+normal\b/.test(t)){
+        let r=S.voice.rate||1;if(/velocidade\s+normal/.test(t))r=1;else if(/mais\s+(devagar|lent)|desacelera/.test(t))r=Math.max(.7,r-.2);else r=Math.min(1.5,r+.2);S.voice.rate=Math.round(r*10)/10;log('Velocidade da voz: '+S.voice.rate+' (voz)');save();render();return P('Beleza, ajustei a velocidade da voz.','Velocidade da voz ajustada.')}
+    // --- notificações
+    if(/\bnotificac\w*|\balertas?\b/.test(t)&&/\b(desativ\w*|deslig\w*|ativ\w*|lig\w*|habilit\w*|pare|tire)\b/.test(t)){const off=/\b(desativ\w*|deslig\w*|pare|tire|desabilit\w*)\b/.test(t);setNotif(!off);return off?P('Pronto, notificações desligadas.','Notificações desativadas.'):P('Ligando as notificações! Se o aparelho pedir, toque em Permitir.','Ativando as notificações. Caso solicitado, conceda a permissão.')}
+    // --- bloquear o app
+    if(/\b(bloque\w*|trav\w*|tranc\w*)\b.*\b(app|aplicativo|tela)\b|\bbloquear\b/.test(t)){if(!S.sec.hash)return P('Você ainda não criou uma senha. Crie em Configurações, na parte de segurança, que eu bloqueio quando quiser.','Não há senha cadastrada. Crie uma nas configurações para usar o bloqueio.');setTimeout(lockNow,1500);return P('Bloqueando o app. Até já!','Bloqueando o aplicativo.')}
+    // --- apagar todos os dados (com confirmação)
+    if(/\b(apag\w*|exclu\w*|delet\w*|limp\w*|remov\w*)\b.*\b(todos\s+(os\s+)?(meus\s+)?dados|todas\s+as\s+informacoes)\b/.test(t)){if(vp)vp.ask={kind:'yes',fn:()=>{setTimeout(()=>{localStorage.removeItem('notaup');location.reload()},900);return P('Apagando tudo…','Dados apagados.')}};return P('Isso apaga TODOS os seus dados do app e não dá pra desfazer. Tem certeza?','Esta ação apagará todos os dados e é irreversível. Confirma?')}
+    // --- renomear matéria
+    {const m=n0.match(/\b(?:renome\w*|mud\w*|troc\w*|alter\w*)\b.*\b(?:materia|disciplina)\b(.*?)\b(?:para|pra)\s+(.+)$/);
+        if(m){const old=findDisc(norm(m[1]));if(!old)return P('Não achei essa matéria pra renomear. Qual é o nome atual dela?','Não localizei essa disciplina. Informe o nome atual.');const nn=cap(tail([0,m[2]],raw));if(!nn||nn.length>40)return P('Qual é o novo nome?','Qual será o novo nome?');if(S.discs.some(x=>x.id!=old.id&&norm(x.name)==norm(nn)))return P(`Já existe uma matéria chamada ${nn}.`,`Já existe a disciplina ${nn}.`);
+            const o=old.name;S.tasks.forEach(x=>{if(x.d==old.id&&x.title)x.title=x.title.split(o).join(nn)});S.grades.forEach(x=>{if(x.d==old.id&&x.name)x.name=x.name.split(o).join(nn)});old.name=nn;log('Disciplina renomeada de '+o+' para '+nn+' (voz)');save();render();return P(`Feito! ${o} agora é ${nn}.`,`Disciplina renomeada de ${o} para ${nn}.`)}}
+    // --- apagar tarefa / prova / lembrete
+    if(/\b(apag\w*|remov\w*|exclu\w*|delet\w*|cancel\w*|desmarc\w*)\b/.test(t)&&/\b(prova|teste|atividade|projeto|trabalho|tarefa|lembrete|evento)\b/.test(t)&&!/\b(apag\w*|remov\w*|exclu\w*|delet\w*)\s+(a\s+|essa\s+|esta\s+)?(materia|disciplina)\b/.test(t)&&!/\bnota\b/.test(t)){
+        const ty=(t.match(/\b(prova|teste|atividade|projeto|trabalho)\b/)||[''])[0],dd=findDisc(t);
+        const L=S.tasks.filter(x=>!x.graded&&(!ty||norm(x.type)==ty)&&(!dd||x.d==dd.id)).sort((a,b)=>a.date<b.date?-1:1);
+        if(!L.length)return P('Não achei nenhuma tarefa assim pra apagar.','Não encontrei tarefa correspondente.');
+        const k=L[0];if(vp)vp.ask={kind:'yes',fn:()=>{delTask(k.id);return P('Pronto, apaguei.','Tarefa excluída.')}};return P(`Apago ${k.title} do dia ${dfmt(k.date)}?`,`Confirma a exclusão de ${k.title}, em ${dfmt(k.date)}?`)}
+    return null}
