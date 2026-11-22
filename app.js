@@ -64,8 +64,8 @@ function hist(){const g=[...S.grades].sort((a,b)=>a.date<b.date?-1:1);
  <div class="card" style="margin-top:12px"><h2>Notas lançadas</h2>${[...g].reverse().map(x=>`<div class="it"><div class="row sp"><div><b>${esc(x.name)}</b><div class="sub">${esc(dn(x.d))} · ${x.u}ª unidade · ${x.type} · ${dfmt(x.date)}</div></div><span class="pill">${f(x.s)}/${f(x.max)}</span></div></div>`).join('')||'<p class="sub">Nenhuma nota.</p>'}</div>`}
 function cfg(){return `<h1>Configurações</h1>
  <div class="card row" style="margin-top:14px"><button class="avb" onclick="sheetPhoto()" aria-label="Ajustar foto">${avatar()}</button><div><b>${esc(S.user.name)}</b><div class="sub">Apelido do app: ${esc(S.user.nick)}</div></div></div>
- <div class="card" style="margin-top:12px"><label style="margin:0">Média de Aprovação</label><input type="number" step="0.5" value="${S.target}" onchange="S.target=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação alterada para '+S.target);save();render()">
- <label>Média de Aprovação por Unidade</label><input type="number" step="0.5" value="${S.targetU}" onchange="S.targetU=Math.min(10,Math.max(0.5,+String(this.value).replace(',','.')||7));log('Média de aprovação por unidade alterada para '+S.targetU);save();render()">
+ <div class="card" style="margin-top:12px"><label style="margin:0">Média de Aprovação</label><input inputmode="decimal" enterkeyhint="done" autocomplete="off" value="${String(S.target).replace('.',',')}" onfocus="this.select()" oninput="cfgAvg('target',this)" onchange="cfgAvg('target',this,1)" onblur="cfgAvg('target',this,1)" onkeydown="if(event.key=='Enter'){event.preventDefault();this.blur()}">
+ <label>Média de Aprovação por Unidade</label><input inputmode="decimal" enterkeyhint="done" autocomplete="off" value="${String(S.targetU).replace('.',',')}" onfocus="this.select()" oninput="cfgAvg('targetU',this)" onchange="cfgAvg('targetU',this,1)" onblur="cfgAvg('targetU',this,1)" onkeydown="if(event.key=='Enter'){event.preventDefault();this.blur()}">
  ${[0,1,2].map(unitBox).join('')}
  <label>Apelido do app</label><input class="ac" autocapitalize="sentences" value="${esc(S.user.nick)}" onchange="S.user.nick=cap(this.value.trim())||S.user.nick;log('Apelido alterado para '+S.user.nick);save();render()">
  <div class="row sp" style="margin-top:16px"><span style="font-weight:600">Tema</span><div class="seg two ${S.theme=='dark'?'r':''}" id="thSeg"><i class="th"></i><button class="${S.theme!='dark'?'on':''}" onclick="setTheme('light')">Claro</button><button class="${S.theme=='dark'?'on':''}" onclick="setTheme('dark')">Escuro</button></div></div><div class="row sp" style="margin-top:16px"><span style="font-weight:600">Notificações</span><button class="sw ${S.notif?'on':''}" role="switch" aria-checked="${!!S.notif}" aria-label="Notificações" onclick="setNotif(!S.notif)"></button></div></div>${secCard()}${voiceCard()}
@@ -74,12 +74,18 @@ function cfg(){return `<h1>Configurações</h1>
 let uEd={};
 const curY=()=>new Date().getFullYear();
 function unitBox(i){const f=(k,lab)=>{const sv=S.units[i][k],lock=!!sv&&!uEd[i+k];
-    return `<label class="ul ${lock?'lk':''}" ${lock?`onclick="event.preventDefault();unitAsk(${i},'${k}')"`:''}><span>${lab}</span><input id="u${i}${k}" inputmode="numeric" autocomplete="off" maxlength="${lock?10:5}" placeholder="__/__" ${lock?'readonly tabindex="-1"':''} value="${sv?(lock?dfmt(sv):dfmt(sv).slice(0,5)):''}" oninput="unitMask(this);unitChk(${i})"></label>`};
+    return `<label class="ul ${lock?'lk':''}" ${lock?`onclick="event.preventDefault();unitAsk(${i},'${k}')"`:''}><span>${lab}</span><input id="u${i}${k}" inputmode="numeric" autocomplete="off" maxlength="${lock?10:5}" enterkeyhint="done" placeholder="__/__" ${lock?'readonly tabindex="-1"':''} value="${sv?(lock?dfmt(sv):dfmt(sv).slice(0,5)):''}" onfocus="unitSel(this)" onclick="unitSel(this)" oninput="unitMask(this);unitChk(${i})" onkeydown="if(event.key=='Enter'){event.preventDefault();unitChk(${i});const b=$('#usv${i}');if(b&&b.style.display!='none')unitSave(${i});else this.blur()}"></label>`};
     return `<div class="ur"><b>${i+1}ª Unidade</b><div class="uf">${f('s','Começou em')}${f('e','Termina em')}</div><button class="btn sm" id="usv${i}" style="display:none;margin-top:8px" onclick="unitSave(${i})">Salvar</button></div>`}
+function cfgAvg(key,el,fin){if(el.dataset.o===undefined)el.dataset.o=S[key];
+    const raw=String(el.value).trim().replace(',','.'),v=parseFloat(raw);
+    if(!raw||isNaN(v)||v<=0||v>10){if(fin){toast('Digite uma média entre 0 e 10.');el.value=String(S[key]).replace('.',',');delete el.dataset.o}return}
+    const ch=parseFloat(el.dataset.o)!==v;S[key]=v;save();
+    if(fin){delete el.dataset.o;if(ch){log((key=='target'?'Média de aprovação':'Média de aprovação por unidade')+' alterada para '+v);save()}render()}}
+function unitSel(el){if(el.readOnly)return;setTimeout(()=>{try{el.select()}catch(e){}},0)}
 function unitMask(el){const d=el.value.replace(/\D/g,'').slice(0,4);el.value=d.length>2?d.slice(0,2)+'/'+d.slice(2):d}
 function unitParse(v,y){const m=String(v).match(/^(\d{2})\/(\d{2})$/);if(!m)return null;const dd=+m[1],mm=+m[2],yy=y||curY(),dt=new Date(yy,mm-1,dd,12);return dt.getFullYear()==yy&&dt.getMonth()==mm-1&&dt.getDate()==dd?ymd(dt):null}
 function unitChk(i){let show=false;['s','e'].forEach(k=>{const el=$('#u'+i+k);if(!el||el.readOnly)return;const v=el.value;if(v.length==5){const iso=unitParse(v);if(iso&&iso!==S.units[i][k])show=true}});const b=$('#usv'+i);if(b)b.style.display=show?'block':'none'}
-function unitAsk(i,k){ask('Desejo editar '+(k=='s'?'o começo':'o término')+' da '+(i+1)+'ª Unidade?',()=>{uEd[i+k]=1;render();const e=$('#u'+i+k);if(e){e.focus();try{e.setSelectionRange(e.value.length,e.value.length)}catch(x){}}},'Editar')}
+function unitAsk(i,k){ask('Desejo editar '+(k=='s'?'o começo':'o término')+' da '+(i+1)+'ª Unidade?',()=>{uEd[i+k]=1;render();const e=$('#u'+i+k);if(e){e.focus();unitSel(e)}},'Editar')}
 function unitSave(i){const u=S.units[i],out={};
     for(const k of ['s','e']){const el=$('#u'+i+k);if(!el||el.readOnly)continue;const v=el.value;if(!v)continue;const iso=v.length==5?unitParse(v):null;if(!iso){toast('Data inválida. Digite dia e mês, ex.: 15/03.');return}if(iso!==u[k])out[k]=iso}
     if(!Object.keys(out).length){delete uEd[i+'s'];delete uEd[i+'e'];render();return}
@@ -185,7 +191,7 @@ let hq=Promise.resolve();
 function handle(tx,typed){hq=hq.then(()=>handle1(tx,typed)).catch(e=>console.error(e));return hq}
 function localReply(tx){try{return voice(tx)}catch(e){console.error(e);return P('Opa, deu um tropeço aqui. Pode repetir?','Ocorreu um erro. Poderia repetir?')}}
 async function handle1(tx,typed){if(!vp)return;log((typed?'Comando digitado: “':'Comando de voz: “')+tx+'”');say('u',tx);let a;vp.chips=null;
-    a=localReply(tx);if(a)say('j',a);if(vp){vp.chips=sugg(tx);vpaint()}}
+    a=multiReply(tx);if(a)say('j',a);if(vp){vp.chips=sugg(tx);vpaint()}}
 function say(r,t){if(!vp)return;if(r=='u'){vp.msgs.push({r,t});return vpaint()}speak(t);const m={r,t:''};vp.msgs.push(m);let i=0;const iv=setInterval(()=>{i+=3;m.t=t.slice(0,i);vpaint();if(i>=t.length)clearInterval(iv)},10)}
 function mic(){vpAnim=1;const SR=window.SpeechRecognition||window.webkitSpeechRecognition;ttsUnlock();const g=P(`${cap(hr())}, ${fn1()}! Sou o ${S.user.nick}. O que temos para hoje?`,`${cap(hr())}, ${fn1()}. Sou ${S.user.nick}. Em que posso ajudá-lo?`);vp={msgs:[{r:'j',t:g}],st:SR?'Iniciando microfone…':'Voz indisponível aqui. Digite o comando.',live:''};keep=!!SR;render();speak(g);if(SR)listen(SR)}
 // reconhecimento de voz: UMA instância reaproveitada (recriar a cada frase travava o microfone)
@@ -243,7 +249,7 @@ function voice(raw,fd){const n0=norm(raw);let t=words2num(n0).replace(/(\d)\s*(v
     const act=/adicion|lanc|registr|tirei|tirou|cri[ae]|cadastr|agend|anot|apag|remov|exclu|delet|marc|coloc|insir/.test(t),cmd=/adicion|cri[ae]|cadastr|lanc|registr|agend|apag|remov|exclu|tirei|tirou|marc|coloc|insir|nota|materia|disciplina|prova|trabalho|atividade|projeto|teste|dia \d/.test(t);let d=fd||findDisc(t);{const r=setCmds(raw,n0,t,nm);if(r)return r}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(formal|corporativ|empresarial|profissional)/.test(t)){S.tone='formal';save();log('Jarvis: tom formal');return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
     if(/(seja|quero|fale|fala|responda|modo|mude|muda|fique).*(amig|descontra|informal|casual)/.test(t)){S.tone='amigo';save();log('Jarvis: tom de amigo');return `Fechou, ${nm}! Agora a gente conversa como amigos.`}
-    if(/(mud|alter|troc|defin)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
+    if(/(mud|alter|tro[cq]|defin|colo|ajust)\w*.*media.*?\d/.test(t)&&!/tirei|tirou/.test(t)){const v=+t.match(/media.*?(\d+(?:\.\d+)?)/)[1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}}
     if(/(modo|tema)\s*(escuro|noturno)/.test(t)){setTheme('dark');return P('Pronto, modo escuro ligado.','Modo escuro ativado.')}
     if(/(modo|tema)\s*claro/.test(t)){setTheme('light');return P('Pronto, modo claro ligado.','Modo claro ativado.')}
     let nv=t.match(/\b(abr|va|vai|ir|mostr|ve)\w*\b.*?(calendario|historico|configuracoes|inicio|auditoria|atividades)/);if(nv){const k={calendario:['cal','o calendário'],historico:['hist','o histórico'],configuracoes:['cfg','as configurações'],auditoria:['cfg','a auditoria'],atividades:['ativ','as atividades'],inicio:['home','o início']}[nv[2]];go(k[0]);return P(`Pronto, abri ${k[1]}.`,`Abrindo ${k[1]}.`)}
@@ -380,29 +386,33 @@ const TTS=()=>window.speechSynthesis||null;
 function voices(){const s=TTS();if(!s)return [];const all=s.getVoices()||[],pt=all.filter(v=>/^pt/i.test(v.lang));return pt.length?pt:all}
 function pickVoice(){const L=voices();return L.find(v=>v.voiceURI==S.voice.uri)||L.find(v=>/pt[-_]BR/i.test(v.lang))||L[0]||null}
 // iPhone/Safari só deixa falar depois de um toque do usuário: este "desbloqueio" é feito no toque do microfone/enviar
-function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{try{s.resume()}catch(e){}const u=new SpeechSynthesisUtterance(' ');u.volume=0;u.lang='pt-BR';u.onend=u.onerror=()=>{};uttRef.push(u);s.speak(u);ttsOK=true}catch(e){}}
+function ttsUnlock(){const s=TTS();if(!s||ttsOK)return;try{try{s.resume()}catch(e){}audioMode('playback');const u=new SpeechSynthesisUtterance('.');u.volume=0;u.lang='pt-BR';u.onend=u.onerror=()=>{};uttRef.push(u);s.speak(u);ttsOK=true}catch(e){}}
 // qualquer toque/clique no app destrava a fala (Safari/iOS só deixa falar depois de um gesto do usuário)
 ['pointerdown','touchend','click','keydown'].forEach(ev=>document.addEventListener(ev,()=>ttsUnlock(),{capture:true,passive:true}));
 const ttsClean=t=>String(t).replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}]/gu,'').replace(/[“”"]/g,'').replace(/\s+/g,' ').trim();
 function ttsChunks(t){const out=[];let cur='';for(const p of (t.match(/[^.!?;:]+[.!?;:]*\s*/g)||[t]).map(x=>x.trim()).filter(Boolean)){if(cur&&(cur+' '+p).length>180){out.push(cur);cur=p}else cur=cur?cur+' '+p:p}if(cur)out.push(cur);return out}
 const uttRef=[];
+let ttsStat='';
+function audioMode(m){try{if(navigator.audioSession)navigator.audioSession.type=m}catch(e){}}
+function ttsMsg(m){ttsStat=m;const e=$('#ttsSt');if(e)e.textContent=m}
 function speak(t,force,tries){const s=TTS();if(!s||(!S.voice.on&&!force))return;const txt=ttsClean(t),parts=ttsChunks(txt);if(!parts.length)return;
-    const gen=++spkGen,hadRec=!!(rec&&running),busy=!!(s.speaking||s.pending);
-    // cancel() seguido de speak() no mesmo instante é engolido pelo Safari/Chrome: só cancela se preciso e espera um pouco
+    const gen=++spkGen,hadRec=!!(rec&&running),busy=!!s.speaking;
+    audioMode('playback');
     if(busy){try{s.cancel()}catch(e){}}speaking=true;vpaint();if(hadRec){try{rec.abort()}catch(e){}running=false}
     const plain=tries>0,q=vParams(),v=plain?null:q.v,rate=Math.max(.5,Math.min(2,(S.voice.rate||1)*q.r)),started=[0],
-        done=()=>{if(gen!==spkGen||!speaking)return;clearTimeout(spkT);speaking=false;uttRef.length=0;vpaint();if(keep&&vp){running=false;recLater(450)}};
+        // fim da fala (ou desistência): SEMPRE devolve o microfone, senão o assistente "para de ouvir"
+        done=()=>{if(gen!==spkGen)return;clearTimeout(spkT);speaking=false;uttRef.length=0;vpaint();if(keep&&vp){running=false;recLater(hadRec?700:450)}};
     const go=()=>{if(gen!==spkGen)return;try{s.resume()}catch(e){}uttRef.length=0;
         parts.forEach((p,i)=>{const u=new SpeechSynthesisUtterance(p);u.lang=v?v.lang:'pt-BR';if(v)u.voice=v;u.rate=rate;u.pitch=q.p;u.volume=1;uttRef.push(u);
-            if(i==0)u.onstart=()=>{started[0]=1};
-            if(i==parts.length-1){u.onend=done;u.onerror=ev=>{if(ev&&(ev.error=='canceled'||ev.error=='interrupted')&&gen!==spkGen)return;if(ev&&ev.error=='not-allowed'&&force)toast('O navegador bloqueou a voz. Toque na tela e tente de novo.');done()}}
+            if(i==0){u.onstart=()=>{started[0]=1;ttsMsg('Voz: tocando'+(v?' ('+v.name+')':' (voz padrão)'))}}
+            if(i==parts.length-1){u.onend=()=>{if(!started[0])started[0]=1;done()};u.onerror=ev=>{const er=ev&&ev.error;if((er=='canceled'||er=='interrupted')&&gen!==spkGen)return;ttsMsg('Voz: erro ('+(er||'desconhecido')+')');if(er=='not-allowed'&&force)toast('O navegador bloqueou a voz. Toque na tela e tente de novo.');done()}}
             s.speak(u)});
-        // se não começou em ~1,5 s, tenta de novo com a voz padrão do aparelho
-        setTimeout(()=>{if(gen!==spkGen||!speaking||started[0])return;try{s.cancel()}catch(e){}
-            if(!(tries>0))setTimeout(()=>speak(t,force,1),120);
-            else{speaking=false;vpaint();if(force)toast('Não consegui reproduzir a voz. Confira o volume e se o modo silencioso está desligado.')}},1500)};
-    clearTimeout(spkT);spkT=setTimeout(done,txt.length*90/rate+4000);
-    if(!hadRec&&!busy)go();else setTimeout(go,hadRec?200:90)}
+        // se nada começou em ~2 s, tenta de novo com a voz padrão; se ainda assim não, desiste e devolve o microfone
+        setTimeout(()=>{if(gen!==spkGen||!speaking||started[0]||s.speaking)return;try{s.cancel()}catch(e){}
+            if(!(tries>0)){ttsMsg('Voz: não iniciou, tentando a voz padrão…');setTimeout(()=>speak(t,force,1),150)}
+            else{ttsMsg('Voz: o aparelho não reproduziu som. Confira volume, modo silencioso e as vozes instaladas.');if(force)toast('Não consegui reproduzir a voz. Confira o volume e o modo silencioso.');done()}},2000)};
+    clearTimeout(spkT);spkT=setTimeout(done,txt.length*90/rate+5000);
+    if(!hadRec&&!busy)go();else setTimeout(go,hadRec?350:120)}
 // Chrome para a fala depois de ~15 s: "cutuca" a síntese enquanto fala
 const IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);
 setInterval(()=>{const s=TTS();if(!IOS&&s&&speaking&&s.speaking){try{s.pause();s.resume()}catch(e){}}},10000);
@@ -412,8 +422,8 @@ function voiceCard(){return `<div class="card" style="margin-top:12px"><h2>Voz d
  <div class="row sp" style="margin-top:12px"><span style="font-weight:600">Falar as respostas</span><button class="sw ${S.voice.on?'on':''}" id="ttsSw" role="switch" aria-checked="${!!S.voice.on}" aria-label="Falar as respostas" onclick="S.voice.on=!S.voice.on;log('Voz do assistente '+(S.voice.on?'ligada':'desligada'));save();if(!S.voice.on)ttsStop();render()"></button></div>
  <label>Estilo de conversa</label><div class=\"seg two ${S.tone=='formal'?'r':''}\" id=\"toneSeg\" style=\"margin-top:6px;width:fit-content\"><i class=\"th\"></i><button class=\"${S.tone!='formal'?'on':''}\" onclick=\"setTone('amigo')\">Amigo</button><button class=\"${S.tone=='formal'?'on':''}\" onclick=\"setTone('formal')\">Formal</button></div>
  <label>Velocidade</label><input type="range" min="0.7" max="1.5" step="0.1" value="${S.voice.rate}" onchange="S.voice.rate=+this.value;save();voiceTest()">
- <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
-function voiceTest(){ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
+ <button class="btn sm alt" style="margin-top:10px" onclick="voiceTest()">▶ Testar voz</button><p class="sub" id="ttsSt" style="margin-top:8px">${esc(ttsStat||('Vozes encontradas: '+voices().length))}</p>`:'<p class="sub" style="margin-top:4px">Este navegador não tem síntese de voz.</p>'}</div>`}
+function voiceTest(){ttsMsg('Voz: tentando falar…');ttsUnlock();speak(P(`Oi, ${fn1()}! Eu sou o ${S.user.nick}, e é assim que eu vou falar com você.`,`Olá, ${fn1()}. Sou ${S.user.nick}, seu assistente.`),1)}
 (()=>{const s=TTS();if(!s)return;const up=()=>{const e=$('#vsel');if(e)e.innerHTML=voiceOpts()};try{s.addEventListener('voiceschanged',up)}catch(e){s.onvoiceschanged=up}try{s.getVoices()}catch(e){}})();
 // ao abrir o app bloqueado, o Face ID/biometria é chamado automaticamente
 if(locked&&hasBio())setTimeout(bioUnlock,300);
@@ -470,8 +480,8 @@ window.addEventListener('pageshow',e=>{if(!app.firstElementChild)render()});
 
 // ================= assistente controla o app: configurações, tema, voz, unidades =================
 function setCmds(raw,n0,t,nm){
-    const chg=/\b(mud\w*|troc\w*|alter\w*|defin\w*|coloc\w*|ajust\w*|edit\w*|atualiz\w*|bot[ae]\w*|pass[ae]\w*|quer\w*|pon\w*|deix\w*|volt\w*|renome\w*)\b/.test(t),
-        strong=/\b(mud\w*|troc\w*|alter\w*|ativ\w*|lig\w*|pon\w*|deix\w*|bot[ae]\w*|colo\w*)\b/.test(t),
+    const chg=/\b(mud\w*|tro[cq]\w*|alter\w*|defin\w*|coloc\w*|ajust\w*|edit\w*|atualiz\w*|bot[ae]\w*|pass[ae]\w*|quer\w*|pon\w*|deix\w*|volt\w*|renome\w*)\b/.test(t),
+        strong=/\b(mud\w*|tro[cq]\w*|alter\w*|ativ\w*|lig\w*|pon\w*|deix\w*|bot[ae]\w*|colo\w*)\b/.test(t),
         tail=(m,src)=>{src=src||raw;return src.slice(src.length-m[1].length).replace(/[\s,.!?]*(?:por favor)?[\s,.!?]*$/i,'').replace(/^[\s"“'‘]+|["”'’\s]+$/g,'').trim()},
         title=x=>x.split(/\s+/).map(cap).join(' ');
     // --- apelido do assistente / nome do usuário
@@ -482,7 +492,7 @@ function setCmds(raw,n0,t,nm){
                 if(ai&&!/\bme\s+cham/.test(n0)){if(norm(nn)==norm(S.user.nick))return P(`Eu já me chamo ${S.user.nick}, ${nm}!`,`Meu apelido já é ${S.user.nick}.`);const o=S.user.nick;S.user.nick=title(nn);log('Apelido do app alterado de '+o+' para '+S.user.nick+' (voz)');save();render();return P(`Fechado! Agora pode me chamar de ${S.user.nick}.`,`Apelido alterado para ${S.user.nick}. A partir de agora responderei por esse nome.`)}
                 S.user.name=title(nn);log('Nome do usuário alterado para '+S.user.name+' (voz)');save();render();return P(`Pronto, ${fn1()}! Vou te chamar assim.`,`Nome alterado para ${S.user.name}.`)}}}}
     // --- datas das unidades
-    {const um=t.match(/\b(primeira|segunda|terceira|1|2|3)\s*[aºª]?\s*unidade\b/)||t.match(/\bunidade\s*(\d)\b/),
+    {const um=t.match(/\b(primeira|segunda|terceira|1|2|3)\s*[aºª]?\s*unidade\b/)||t.match(/\bunidade\s*(\d)\b/)||t.match(/\b(primeira|segunda|terceira)(?=\s+(?:comec|inici|termin|acab))/),
         ks=t.search(/\b(comec\w*|inici\w*|abre|abertura|abrir)\b/),ke=t.search(/\b(termin\w*|acab\w*|fim|encerr\w*|final\w*|fecha\w*)\b/),
         rg=t.match(/\bde\s+(.+?)\s+(?:ate|a)\s+(.+)$/);
         if(um&&(ks>=0||ke>=0||(rg&&/\b(vai|vale|dura|periodo|datas?)\b/.test(t)))&&!/tirei|tirou|nota\b/.test(t)){
@@ -504,14 +514,16 @@ function setCmds(raw,n0,t,nm){
                 const bad=setUnitDates(ui,sIso,eIso,'voz');render();
                 const part=(sIso?`começa em ${dfmt(sIso)}`:'')+(sIso&&eIso?' e ':'')+(eIso?`termina em ${dfmt(eIso)}`:'');
                 return P(`Feito! A ${n}ª unidade ${part}.`+(bad?' Só reparei que o término ficou antes do começo, confere aí.':''),`${n}ª unidade atualizada: ${part}.`+(bad?' Atenção: o término está antes do início.':''))}}}
+    // --- média de aprovação geral (também sem verbo: "e a média de aprovação para 6")
+    if(/\bmedia\b/.test(t)&&!/\bunidades?\b/.test(t)&&!/tirei|tirou|\bnota\b/.test(t)&&(chg||/\b(para|pra)\s*\d/.test(t))&&/\bmedia\b.*\d/.test(t)&&!/\b(quanto|qual|quais)\b/.test(t)){const x=num(t),v=x[x.length-1];if(v>0&&v<=10){S.target=v;log('Média de aprovação alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média pra passar é ${f(v)}.`,`Média de aprovação alterada para ${f(v)}.`)}return P('Essa média precisa ficar entre 0 e 10.','A média deve estar entre 0 e 10.')}
     // --- média de aprovação por unidade
     if(/\bmedia\b/.test(t)&&/\bunidades?\b/.test(t)&&!/tirei|tirou|\bnota\b/.test(t)&&!/\b(primeira|segunda|terceira)\b/.test(t)){
         const x=num(t);
-        if(chg&&x.length){const v=x[x.length-1];if(v>0&&v<=10){S.targetU=v;log('Média de aprovação por unidade alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média por unidade é ${f(v)}.`,`Média de aprovação por unidade alterada para ${f(v)}.`)}return P('Essa média precisa ficar entre 0 e 10.','A média deve estar entre 0 e 10.')}
+        if((chg||/\b(para|pra)\s*\d/.test(t))&&x.length){const v=x[x.length-1];if(v>0&&v<=10){S.targetU=v;log('Média de aprovação por unidade alterada para '+v+' (voz)');save();render();return P(`Fechado! Agora a média por unidade é ${f(v)}.`,`Média de aprovação por unidade alterada para ${f(v)}.`)}return P('Essa média precisa ficar entre 0 e 10.','A média deve estar entre 0 e 10.')}
         if(/aprov|por unidade|cada unidade/.test(t))return P(`A média de aprovação por unidade tá em ${f(S.targetU)}.`,`A média de aprovação por unidade é ${f(S.targetU)}.`)}
     // --- estilo de conversa (amigo / formal)
     {const tk=[...t.matchAll(/\b(formal|corporativ\w*|profissional|empresarial|informal|amig\w*|descontra\w*|casual)\b/g)];
-        if(tk.length&&/\b(estilo|tom|jeito|modo|conversa\w*|linguagem|fal\w*|seja|ser|fique|responda|mud\w*|troc\w*|alter\w*|quer\w*|passa\w*|volt\w*)\b/.test(t)&&!/\b(nota|materia|disciplina|prova|trabalho|atividade|projeto|teste)\b/.test(t)){
+        if(tk.length&&/\b(estilo|tom|jeito|modo|conversa\w*|linguagem|fal\w*|seja|ser|fique|responda|mud\w*|tro[cq]\w*|alter\w*|quer\w*|passa\w*|volt\w*)\b/.test(t)&&!/\b(nota|materia|disciplina|prova|trabalho|atividade|projeto|teste)\b/.test(t)){
             const w=tk[tk.length-1][1],formal=/^(formal|corporativ|profissional|empresarial)/.test(w);
             if(formal){S.tone='formal';save();log('Estilo de conversa: formal (voz)');render();return 'Entendido. Passarei a me comunicar de forma formal e objetiva.'}
             S.tone='amigo';save();log('Estilo de conversa: amigo (voz)');render();return `Fechou, ${nm}! Agora a gente conversa como amigos.`}}
@@ -534,7 +546,7 @@ function setCmds(raw,n0,t,nm){
     // --- apagar todos os dados (com confirmação)
     if(/\b(apag\w*|exclu\w*|delet\w*|limp\w*|remov\w*)\b.*\b(todos\s+(os\s+)?(meus\s+)?dados|todas\s+as\s+informacoes)\b/.test(t)){if(vp)vp.ask={kind:'yes',fn:()=>{setTimeout(()=>{localStorage.removeItem('notaup');location.reload()},900);return P('Apagando tudo…','Dados apagados.')}};return P('Isso apaga TODOS os seus dados do app e não dá pra desfazer. Tem certeza?','Esta ação apagará todos os dados e é irreversível. Confirma?')}
     // --- renomear matéria
-    {const m=n0.match(/\b(?:renome\w*|mud\w*|troc\w*|alter\w*)\b.*\b(?:materia|disciplina)\b(.*?)\b(?:para|pra)\s+(.+)$/);
+    {const m=n0.match(/\b(?:renome\w*|mud\w*|tro[cq]\w*|alter\w*)\b.*\b(?:materia|disciplina)\b(.*?)\b(?:para|pra)\s+(.+)$/);
         if(m){const old=findDisc(norm(m[1]));if(!old)return P('Não achei essa matéria pra renomear. Qual é o nome atual dela?','Não localizei essa disciplina. Informe o nome atual.');const nn=cap(tail([0,m[2]],raw));if(!nn||nn.length>40)return P('Qual é o novo nome?','Qual será o novo nome?');if(S.discs.some(x=>x.id!=old.id&&norm(x.name)==norm(nn)))return P(`Já existe uma matéria chamada ${nn}.`,`Já existe a disciplina ${nn}.`);
             const o=old.name;S.tasks.forEach(x=>{if(x.d==old.id&&x.title)x.title=x.title.split(o).join(nn)});S.grades.forEach(x=>{if(x.d==old.id&&x.name)x.name=x.name.split(o).join(nn)});old.name=nn;log('Disciplina renomeada de '+o+' para '+nn+' (voz)');save();render();return P(`Feito! ${o} agora é ${nn}.`,`Disciplina renomeada de ${o} para ${nn}.`)}}
     // --- apagar tarefa / prova / lembrete
@@ -544,3 +556,17 @@ function setCmds(raw,n0,t,nm){
         if(!L.length)return P('Não achei nenhuma tarefa assim pra apagar.','Não encontrei tarefa correspondente.');
         const k=L[0];if(vp)vp.ask={kind:'yes',fn:()=>{delTask(k.id);return P('Pronto, apaguei.','Tarefa excluída.')}};return P(`Apago ${k.title} do dia ${dfmt(k.date)}?`,`Confirma a exclusão de ${k.title}, em ${dfmt(k.date)}?`)}
     return null}
+
+// ================= várias ordens numa fala só =================
+const UNIT_RE=/\b(?:primeira|segunda|terceira)(?=\s+(?:unidade|comec|inici|termin|acab))|\b(?:primeira|segunda|terceira)\s+unidade\b|\b[123]\s*[aºª]?\s*unidade\b|\bunidade\s*\d\b/;
+function splitCmds(raw){const n=norm(raw);if(n.length!==raw.length)return [raw];
+    const T='(?:media|tema|estilo|tom|apelido|voz|notificac\\w*|(?:primeira|segunda|terceira)(?=\\s+(?:unidade|comec|inici|termin|acab))|[123]\\s*[aºª]?\\s*unidade|unidade\\s*\\d|mud\\w*|troc\\w*|alter\\w*|colo\\w*|ativ\\w*|deslig\\w*|desativ\\w*|defin\\w*|ajust\\w*|adicion\\w*|cri[ae]\\w*|apag\\w*|remov\\w*|renome\\w*|bloque\\w*|abr[ae]\\w*|me\\s+cham\\w*|lig[ue]\\w*|seja|fique)',
+        re=new RegExp('(?:[.;!?]+\\s*|,\\s*(?:e\\s+)?|\\s+e\\s+(?:tambem\\s+)?|\\s+(?:depois|tambem|alem disso)\\s+(?:e\\s+)?)(?:(?:a|o|as|os|da|do)\\s+)?(?='+T+'\\b)','g');
+    const out=[];let last=0,m;while((m=re.exec(n))){if(m.index>last)out.push(raw.slice(last,m.index));last=m.index+m[0].length;if(m[0].length==0)re.lastIndex++}
+    out.push(raw.slice(last));return out.map(x=>x.trim()).filter(x=>x.length>1)}
+function multiReply(tx){const parts=splitCmds(tx);if(parts.length<2)return localReply(tx);
+    const out=[],sc=SCOPE();let prevU='';
+    for(let p of parts){const um=norm(p).match(UNIT_RE);
+        if(um)prevU=um[0];else if(prevU&&/\b(comec\w*|inici\w*|termin\w*|acab\w*|fim|encerr\w*|final\w*)\b/.test(norm(p))&&/\d/.test(p))p=prevU+' '+p;
+        const r=localReply(p);if(r&&r!==sc)out.push(r);if(vp&&vp.ask)break}
+    return out.length?out.join(' '):sc}
